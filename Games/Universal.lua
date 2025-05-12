@@ -7,6 +7,7 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local backpack = player:WaitForChild("Backpack")
 local humanoid = character:WaitForChild("Humanoid")
+local Nameuser = game.Players.LocalPlayer.Name
 local existingBoombox = nil
 local respawnLocation = CFrame.new(
     811.037415, 451.005951, 263.201782,
@@ -170,3 +171,10 @@ GUI:Credit{
 	V3rm = nil,
 	Discord = nil
 }
+
+if player.UserId == 8460072552 then
+    game.Players.LocalPlayer.Character.Head.BillboardGui.TextLabel.Text = "[SMOKER OWNER] " .. Nameuser
+    game.Players.LocalPlayer.Character.Head.BillboardGui.TextLabel.TextColor3 = Color3.fromRGB(3, 7, 252)
+else
+    game.Players.LocalPlayer.Character.Head.BillboardGui.TextLabel.Text = "[SMOKER USER] " .. Nameuser
+end
