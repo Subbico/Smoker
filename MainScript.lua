@@ -1,20 +1,17 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 local userId = tostring(player.UserId)
 local gameId = game.PlaceId
 local baseUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/"
 
-local success, data = pcall(function()
-    return game:HttpGet(baseUrl .. "Blacklist.json")
-end)
-
-if success and data then
-    local blacklist = HttpService:JSONDecode(data)
-    if blacklist[userId] and blacklist[userId].Kick then
-        player:Kick(blacklist[userId].Kick)
-        return
-    end
+local function showNotification(title, text)
+    StarterGui:SetCore("SendNotification", {
+        Title = title,
+        Text = text,
+        Duration = 5
+    })
 end
 
 local scriptUrl = baseUrl .. gameId .. ".lua"
@@ -25,5 +22,6 @@ end)
 if scriptFound and scriptCode and not scriptCode:find("404") then
     loadstring(scriptCode)()
 else
+    showNotification("Game Not Supported", "Launching Universal Script...")
     loadstring(game:HttpGet(baseUrl .. "Universal.lua"))()
 end
