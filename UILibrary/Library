@@ -4,17 +4,20 @@ library.DefaultColor = Color3.fromRGB(56, 66, 207)
 
 task.spawn(function()
     local lastColor = library.DefaultColor
-    local rootGui = game:GetService("CoreGui"):FindFirstChild("Smoker")
 
     while true do
-        if library.DefaultColor ~= lastColor and rootGui then
-            for _, obj in ipairs(rootGui:GetDescendants()) do
-                if obj:IsA("GuiObject") then
-                    if obj.BackgroundColor3 == lastColor then
-                        obj.BackgroundColor3 = library.DefaultColor
-                    end
-                    if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.TextColor3 == lastColor then
-                        obj.TextColor3 = library.DefaultColor
+        if library.DefaultColor ~= lastColor then
+            for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+                if gui:IsA("ScreenGui") and gui.Name == "Smoker" then
+                    for _, obj in ipairs(gui:GetDescendants()) do
+                        if obj:IsA("GuiObject") then
+                            if obj.BackgroundColor3 == lastColor then
+                                obj.BackgroundColor3 = library.DefaultColor
+                            end
+                            if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.TextColor3 == lastColor then
+                                obj.TextColor3 = library.DefaultColor
+                            end
+                        end
                     end
                 end
             end
