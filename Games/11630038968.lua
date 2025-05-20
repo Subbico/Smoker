@@ -731,7 +731,7 @@ CombatWindow:Toggle({
                             local backPosition = targetHRP.Position - (targetHRP.CFrame.LookVector * 5) + Vector3.new(0, 2, 0)
 
                             local direction = (backPosition - HumanoidRootPart.Position).Unit
-                            local speed = 45
+                            local speed = 40
                             HumanoidRootPart.Velocity = direction * speed
                         end
                     end
