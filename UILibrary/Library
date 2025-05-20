@@ -184,6 +184,16 @@ if loaderSuccess then
     notify("loader.lua")
 end
 
+local circleUrl = "https://github.com/Rain-Design/Libraries/raw/main/Icon/Circle.png"
+local circlePath = rootFolder .. "/Circle.png"
+local circleSuccess, circleContent = pcall(function()
+    return game:HttpGet(circleUrl)
+end)
+if circleSuccess then
+    writefile(circlePath, circleContent)
+    notify("Circle.png")
+end
+
 function library:Window(Info)
 Info.Text = Info.Text or "Smoker"
 
