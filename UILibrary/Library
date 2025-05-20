@@ -150,16 +150,18 @@ local function downloadFolder(path, localPath)
     local data = HttpService:JSONDecode(response)
     for _, item in pairs(data) do
         if item.type == "file" then
-            local contentSuccess, content = pcall(function()
-                return game:HttpGet(item.download_url)
-            end)
-            if contentSuccess then
-                local fullPath = localPath .. "/" .. item.name
-                local folders = string.split(fullPath, "/")
-                table.remove(folders)
-                ensureFolder(table.concat(folders, "/"))
-                writefile(fullPath, content)
-                notify(item.name)
+            local fullPath = localPath .. "/" .. item.name
+            if not isfile(fullPath) then
+                local contentSuccess, content = pcall(function()
+                    return game:HttpGet(item.download_url)
+                end)
+                if contentSuccess then
+                    local folders = string.split(fullPath, "/")
+                    table.remove(folders)
+                    ensureFolder(table.concat(folders, "/"))
+                    writefile(fullPath, content)
+                    notify(item.name)
+                end
             end
         elseif item.type == "dir" then
             local newLocalPath = localPath .. "/" .. item.name
@@ -179,7 +181,7 @@ local loaderPath = rootFolder .. "/loader.lua"
 local loaderSuccess, loaderContent = pcall(function()
     return game:HttpGet(loaderUrl)
 end)
-if loaderSuccess then
+if loaderSuccess and not isfile(loaderPath) then
     writefile(loaderPath, loaderContent)
     notify("loader.lua")
 end
@@ -189,7 +191,7 @@ local circlePath = rootFolder .. "/Circle.png"
 local circleSuccess, circleContent = pcall(function()
     return game:HttpGet(circleUrl)
 end)
-if circleSuccess then
+if circleSuccess and not isfile(circlePath) then
     writefile(circlePath, circleContent)
     notify("Circle.png")
 end
