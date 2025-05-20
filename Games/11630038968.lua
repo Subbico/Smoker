@@ -66,8 +66,8 @@ local RGBEnabled = false
 local messages = {
     "L %s",
     "smxke.on.top",
-    "dc: scriptisfocus",
-    "smxke.own.this"
+    "smxke.own.this",
+    "%s crying because no smxke private"
 }
 
 local enabled = false
@@ -731,7 +731,7 @@ CombatWindow:Toggle({
                             local backPosition = targetHRP.Position - (targetHRP.CFrame.LookVector * 5) + Vector3.new(0, 2, 0)
 
                             local direction = (backPosition - HumanoidRootPart.Position).Unit
-                            local speed = 50
+                            local speed = 45
                             HumanoidRootPart.Velocity = direction * speed
                         end
                     end
