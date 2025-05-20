@@ -63,6 +63,9 @@ local HumanoidRootPart = hrp
 
 local RGBEnabled = false
 
+local AutoGGEnabled = false
+local connections = {}
+
 local messages = {
     "L %s",
     "smxke.on.top",
@@ -391,6 +394,59 @@ end
 
 if not characterAddedConnection then
     characterAddedConnection = player.CharacterAdded:Connect(onCharacterAdded)
+end
+
+local function isAnotherPlayerAlive(deadPlayer)
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= deadPlayer then
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    return true
+                end
+            end
+        end
+    end
+    return false
+end
+
+local function onHumanoidDied(deadPlayer)
+    if not AutoGGEnabled then return end
+    if isAnotherPlayerAlive(deadPlayer) then
+        local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if channel then
+            local message = "gg " .. deadPlayer.DisplayName
+            channel:SendAsync(message)
+        else
+            warn("RBXGeneral channel not found.")
+        end
+    end
+end
+
+local function connectCharacter(character, player)
+    local humanoid = character:WaitForChild("Humanoid")
+    local conn = humanoid.Died:Connect(function()
+        onHumanoidDied(player)
+    end)
+    table.insert(connections, conn)
+end
+
+local function connectPlayer(player)
+    if player.Character then
+        connectCharacter(player.Character, player)
+    end
+    local conn = player.CharacterAdded:Connect(function(character)
+        connectCharacter(character, player)
+    end)
+    table.insert(connections, conn)
+end
+
+local function disconnectAll()
+    for _, conn in pairs(connections) do
+        conn:Disconnect()
+    end
+    connections = {}
 end
 
 SettingsWindow:Dropdown({
@@ -737,6 +793,21 @@ CombatWindow:Toggle({
                     end
                 end
             end)
+        end
+    end
+})
+
+UtilityWindow:Toggle({
+    Text = "AutoGG",
+    Callback = function(enabled)
+        AutoGGEnabled = enabled
+        if enabled then
+            for _, player in pairs(Players:GetPlayers()) do
+                connectPlayer(player)
+            end
+            Players.PlayerAdded:Connect(connectPlayer)
+        else
+            disconnectAll()
         end
     end
 })
