@@ -2,6 +2,27 @@ local library = {}
 library.Flags = {}
 library.DefaultColor = Color3.fromRGB(56, 66, 207)
 
+task.spawn(function()
+    local lastColor = library.DefaultColor
+
+    while true do
+        if library.DefaultColor ~= lastColor then
+            for _, obj in ipairs(game:GetService("CoreGui"):GetDescendants()) do
+                if obj:IsA("GuiObject") then
+                    if obj.BackgroundColor3 == lastColor then
+                        obj.BackgroundColor3 = library.DefaultColor
+                    end
+                    if (obj:IsA("TextLabel") or obj:IsA("TextButton")) and obj.TextColor3 == lastColor then
+                        obj.TextColor3 = library.DefaultColor
+                    end
+                end
+            end
+            lastColor = library.DefaultColor
+        end
+        task.wait(0.1)
+    end
+end)
+
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 
@@ -173,8 +194,10 @@ end
 
 ensureFolder(rootFolder)
 ensureFolder(rootFolder .. "/Games")
+ensureFolder(rootFolder .. "/Assets")
 
 downloadFolder("Games", rootFolder .. "/Games")
+downloadFolder("Assets", rootFolder .. "/Assets")
 
 local loaderUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loader.lua"
 local loaderPath = rootFolder .. "/loader.lua"
