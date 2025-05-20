@@ -129,12 +129,59 @@ end
 local Request = syn and syn.request or http and http.request or http_request or request or httprequest
 local getcustomasset = getcustomasset or getsynasset
 
-if not isfolder("Smoker") then
-    makefolder("Smoker")
-    library:Notification({Text = "Downloading Assets", Duration = 5})
-    local Circle = Request({Url = "https://github.com/Rain-Design/Libraries/blob/main/Icon/Circle.png?raw=true",Method = "GET"})
-	writefile("Smoker/Circle.png", Circle.Body)
-	library:Notification({Text = "Downloaded Circle.png", Duration = 3})
+local HttpService = game:GetService("HttpService")
+local rootFolder = "Smxker"
+local repoApi = "https://api.github.com/repos/7Smoker/Smoker/contents/"
+
+local function notify(filename)
+    library:Notification({Text = "Downloaded " .. filename, Duration = 4})
+end
+
+local function ensureFolder(path)
+    if not isfolder(path) then makefolder(path) end
+end
+
+local function downloadFolder(path, localPath)
+    local success, response = pcall(function()
+        return game:HttpGet(repoApi .. path)
+    end)
+    if not success then return end
+
+    local data = HttpService:JSONDecode(response)
+    for _, item in pairs(data) do
+        if item.type == "file" then
+            local contentSuccess, content = pcall(function()
+                return game:HttpGet(item.download_url)
+            end)
+            if contentSuccess then
+                local fullPath = localPath .. "/" .. item.name
+                local folders = string.split(fullPath, "/")
+                table.remove(folders)
+                ensureFolder(table.concat(folders, "/"))
+                writefile(fullPath, content)
+                notify(item.name)
+            end
+        elseif item.type == "dir" then
+            local newLocalPath = localPath .. "/" .. item.name
+            ensureFolder(newLocalPath)
+            downloadFolder(path .. "/" .. item.name, newLocalPath)
+        end
+    end
+end
+
+ensureFolder(rootFolder)
+ensureFolder(rootFolder .. "/Games")
+
+downloadFolder("Games", rootFolder .. "/Games")
+
+local loaderUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loader.lua"
+local loaderPath = rootFolder .. "/loader.lua"
+local loaderSuccess, loaderContent = pcall(function()
+    return game:HttpGet(loaderUrl)
+end)
+if loaderSuccess then
+    writefile(loaderPath, loaderContent)
+    notify("loader.lua")
 end
 
 function library:Window(Info)
