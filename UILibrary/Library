@@ -184,7 +184,7 @@ if loaderSuccess then
     notify("loader.lua")
 end
 
-local circleUrl = "https://github.com/Rain-Design/Libraries/raw/main/Icon/Circle.png"
+local circleUrl = "https://raw.githubusercontent.com/Rain-Design/Libraries/main/Icon/Circle.png"
 local circlePath = rootFolder .. "/Circle.png"
 local circleSuccess, circleContent = pcall(function()
     return game:HttpGet(circleUrl)
