@@ -1234,8 +1234,8 @@ function library:Uninject()
     library.Flags = {}
 end
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/checkwhitelist.lua"))()
-
 return insidewindow
 end
 return library
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/checkwhitelist.lua"))()
