@@ -1223,6 +1223,17 @@ close.MouseButton1Click:Connect(function()
     TweenService:Create(close, TweenInfo.new(.3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Rotation = WindowOpened.Value and 0 or 180}):Play()
 end)
 
+function library:Uninject()
+    library._uninjecting = true
+    for _, gui in ipairs(game:GetService("CoreGui"):GetChildren()) do
+        if gui:IsA("ScreenGui") and gui.Name == "Smoker" then
+            gui:Destroy()
+        end
+    end
+
+    library.Flags = {}
+end
+
 return insidewindow
 end
 return library
