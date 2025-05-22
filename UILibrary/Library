@@ -1237,5 +1237,3 @@ end
 return insidewindow
 end
 return library
-
-loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/checkwhitelist.lua"))()
