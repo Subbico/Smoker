@@ -1,8 +1,8 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/Library", true))()
+Library.DefaultColor = Color3.fromRGB(3, 73, 252)
 local Flags = Library.Flags
 
-Library.DefaultColor = Color3.fromRGB(3, 73, 252)
-
+-- Windows
 local CreditsWindow = Library:Window({Text = "Credits"})
 local CombatWindow = Library:Window({Text = "Combat"})
 local UtilityWindow = Library:Window({Text = "Utility"})
@@ -10,62 +10,36 @@ local MovementWindow = Library:Window({Text = "Movement"})
 local VisualWindow = Library:Window({Text = "Visual"})
 local SettingsWindow = Library:Window({Text = "Settings"})
 
+--Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local TextChatService = game:GetService("TextChatService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game.Lighting
+local TextChatService = game:GetService("TextChatService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
+local camera = Workspace.CurrentCamera
+
+--States
+local ESPEnabled, InfiniteJumpEnabled, AutoGGEnabled, AntiKnockbackEnabled = false, false, false, false
+local WatermarkEnabled, RGBEnabled, enabled, running, following = true, false, false, false, false
+local followConnection, antiKnockbackConnection, runConnection, characterAddedConnection, humanoidDiedConnection
+local originalCameraCFrame, currentTarget, lastSwingTime, watermarkGui = nil, nil, 0, nil
+local activeMethod, connection, FPSBoostEnabled, Vibe, autoToxicEnabled, HumanoidRootPart, character, staffDetectorEnabled = nil, nil, false, false, false, hrp, Character, false
+local SpeedEnabled, AntiHitEnabled, SpeedValue = false, false, 16
+
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
 local humanoid = character:WaitForChild("Humanoid")
-local camera = workspace.CurrentCamera
+local rotationAngle = 0
+local rotationSpeed = math.rad(360)
 
 local SwordItems = {"WoodenSword", "TemplateSword", "DiamondSword", "GoldSword", "Sword"}
-
-local enabled = false
-local runConnection = nil
-local humanoidDiedConnection = nil
-local characterAddedConnection = nil
-local originalCameraCFrame = nil
-local currentTarget = nil
-local lastSwingTime = 0
-
-local activeMethod = nil
-local running = false
-local connection = nil
-
-local ESPEnabled = false
 local nametagConnections = {}
-
-local FPSBoostEnabled = false
-
-local following = false
-local followConnection
-
-local Vibe = false
-
-local autoToxicEnabled = false
-
-local InfiniteJumpEnabled = false
-
-local antiKnockbackEnabled = false
-local antiKnockbackConnection
-
-local watermarkGui
-local watermarkEnabled = true
-
-local LocalPlayer = player
-local Character = character
-local HumanoidRootPart = hrp
-
-local RGBEnabled = false
-
-local AutoGGEnabled = false
 local connections = {}
-
 local messages = {
     "L %s",
     "smxke.on.top",
@@ -73,22 +47,7 @@ local messages = {
     "%s crying because no smxke private"
 }
 
-local enabled = false
-local function doLongJump()
-    local character = player.Character
-    if not character then return end
-
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    local rootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoid or not rootPart then return end
-
-    humanoid:TakeDamage(10)
-
-    local lookVector = camera.CFrame.LookVector
-    local jumpVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit * 10
-    rootPart.CFrame = rootPart.CFrame + jumpVector
-end
-
+--Functions
 UserInputService.JumpRequest:Connect(function()
     if InfiniteJumpEnabled then
         local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -392,6 +351,31 @@ local function onCharacterAdded(character)
     end
 end
 
+local function isInCity()
+    local cityModel = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("City")
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not cityModel or not hrp then return false end
+
+    if cityModel:IsA("Model") then
+        local cityRegion = cityModel:GetExtentsSize()
+        local cityCFrame = cityModel:GetModelCFrame()
+        local cityMin = cityCFrame.Position - (cityRegion / 2)
+        local cityMax = cityCFrame.Position + (cityRegion / 2)
+
+        local pos = hrp.Position
+        return pos.X >= cityMin.X and pos.X <= cityMax.X and
+               pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
+               pos.Z >= cityMin.Z and pos.Z <= cityMax.Z
+    end
+
+    return false
+end
+
+local function IsAlive(char)
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    return hum and hum.Health > 0
+end
+
 if not characterAddedConnection then
     characterAddedConnection = player.CharacterAdded:Connect(onCharacterAdded)
 end
@@ -449,6 +433,49 @@ local function disconnectAll()
     connections = {}
 end
 
+local function getPlayerWithLowestHealth(range)
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    local hrp = character.HumanoidRootPart
+
+    local lowestHealthPlayer = nil
+    local lowestHealth = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("HumanoidRootPart") then
+            local humanoid = player.Character.Humanoid
+            if humanoid.Health > 0 then
+                local distance = (player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+                if distance <= range and humanoid.Health < lowestHealth then
+                    lowestHealth = humanoid.Health
+                    lowestHealthPlayer = player
+                end
+            end
+        end
+    end
+
+    return lowestHealthPlayer
+end
+
+local function isLineOfSightClear(origin, targetPosition)
+    local direction = targetPosition - origin
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.IgnoreWater = true
+
+    local raycastResult = Workspace:Raycast(origin, direction, raycastParams)
+    if raycastResult then
+        local distanceToHit = (raycastResult.Position - origin).Magnitude
+        local distanceToTarget = direction.Magnitude
+        if distanceToHit < distanceToTarget then
+            return false
+        end
+    end
+    return true
+end
+
+--Features
 SettingsWindow:Dropdown({
     Text = "Theme",
     List = {"Dark", "White", "Aqua", "Nova", "RGB"},
@@ -738,6 +765,22 @@ MovementWindow:Keybind({
     Text = "LongJump",
     Default = Enum.KeyCode.L,
     Callback = function()
+
+        local function doLongJump()
+            local character = player.Character
+            if not character then return end
+
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            local rootPart = character:FindFirstChild("HumanoidRootPart")
+            if not humanoid or not rootPart then return end
+
+            humanoid:TakeDamage(10)
+
+            local lookVector = camera.CFrame.LookVector
+            local jumpVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit * 10
+            rootPart.CFrame = rootPart.CFrame + jumpVector
+        end
+
         enabled = not enabled
         if enabled then
             doLongJump()
@@ -808,6 +851,216 @@ UtilityWindow:Toggle({
             Players.PlayerAdded:Connect(connectPlayer)
         else
             disconnectAll()
+        end
+    end
+})
+
+UtilityWindow:Toggle({
+    Text = "StaffDetector",
+    Callback = function(state)
+
+        local function checkPlayer(player)
+            if player ~= game.Players.LocalPlayer then
+                local success, rank = pcall(function()
+                    return player:GetRankInGroup(6604847)
+                end)
+
+                if success and rank > 1 then
+                    local roleName = player:GetRoleInGroup(6604847)
+                    print("[StaffDetector] Staff detected: " .. player.Name .. " - Rank: " .. roleName)
+                    Library:Notification({
+                        Text = "Staff Detected! " .. player.Name .. " is a " .. roleName,
+                        Duration = 20,
+                        Color = Color3.fromRGB(255, 0, 34)
+                    })
+                else
+                    print("[StaffDetector] No role detected for: ", player.Name, "(Rank:", rank .. ")")
+                end
+            end
+        end
+        
+        staffDetectorEnabled = state
+
+        if state then
+            for _, player in pairs(game.Players:GetPlayers()) do
+                checkPlayer(player)
+            end
+
+            game.Players.PlayerAdded:Connect(function(player)
+                if staffDetectorEnabled then
+                    task.wait(1)
+                    checkPlayer(player)
+                end
+            end)
+        end
+    end
+})
+
+CombatWindow:Toggle({
+    Text = "TargetSafe",
+    Callback = function(state)
+        if followConnection then
+            followConnection:Disconnect()
+            followConnection = nil
+        end
+
+        if state then
+            rotationAngle = 0
+
+            followConnection = RunService.Heartbeat:Connect(function(deltaTime)
+                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+                local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
+
+                local target = getPlayerWithLowestHealth(20)
+                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
+                    local humanoid = target.Character.Humanoid
+                    if humanoid.Health > 0 then
+                        local targetHRP = target.Character.HumanoidRootPart
+
+                        local cityModel = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("City")
+                        local isInCity = false
+                        if cityModel and cityModel:IsA("Model") then
+                            local cityRegion = cityModel:GetExtentsSize()
+                            local cityCFrame = cityModel:GetModelCFrame()
+                            local cityMin = cityCFrame.Position - (cityRegion / 2)
+                            local cityMax = cityCFrame.Position + (cityRegion / 2)
+
+                            local pos = targetHRP.Position
+                            if pos.X >= cityMin.X and pos.X <= cityMax.X and
+                               pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
+                               pos.Z >= cityMin.Z and pos.Z <= cityMax.Z then
+                                isInCity = true
+                            end
+                        end
+
+                        if isInCity then return end
+
+                        local direction = (targetHRP.Position - HumanoidRootPart.Position)
+                        local rayParams = RaycastParams.new()
+                        rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                        rayParams.IgnoreWater = true
+
+                        local rayResult = workspace:Raycast(HumanoidRootPart.Position, direction, rayParams)
+                        if rayResult and not target.Character:IsAncestorOf(rayResult.Instance) then
+                            return
+                        end
+
+                        rotationAngle = rotationAngle + rotationSpeed * deltaTime
+                        if rotationAngle > math.pi * 2 then
+                            rotationAngle = rotationAngle - math.pi * 2
+                        end
+
+                        local offset = Vector3.new(math.cos(rotationAngle) * 5, 4, math.sin(rotationAngle) * 5)
+                        local desiredPosition = targetHRP.Position + offset
+
+                        local moveDirection = (desiredPosition - HumanoidRootPart.Position)
+                        local distance = moveDirection.Magnitude
+                        if distance > 0 then
+                            local moveSpeed = math.min(distance / deltaTime, 28)
+                            HumanoidRootPart.Velocity = moveDirection.Unit * moveSpeed
+                        else
+                            HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
+                        end
+                    end
+                end
+            end)
+        end
+    end
+})
+
+local AntiHitLoop
+
+local function getAntiHitPlayer(maxDist)
+    local closest, shortest = nil, maxDist or 25
+    local myChar = LocalPlayer.Character
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and IsAlive(player.Character) then
+            local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
+            if targetHRP then
+                local dist = (myHRP.Position - targetHRP.Position).Magnitude
+                if dist <= shortest then
+                    closest = player
+                    shortest = dist
+                end
+            end
+        end
+    end
+
+    return closest
+end
+
+CombatWindow:Toggle({
+    Text = "AntiHit",
+    Callback = function(state)
+        AntiHitEnabled = state
+
+        if state then
+            AntiHitLoop = task.spawn(function()
+                while AntiHitEnabled do
+                    local target = getAntiHitPlayer(25)
+                    local myChar = LocalPlayer.Character
+                    local hrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+                    if target and hrp and not isInCity() then
+                        local targetHRP = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHRP then
+                            local dir = (targetHRP.Position - hrp.Position).Unit
+                            local horiz = Vector3.new(dir.X, 0, dir.Z) * 80
+                            local upward = Vector3.new(0, 50, 0)
+
+                            hrp.Velocity = horiz + upward
+                            task.wait(0.5)
+                            hrp.Velocity = Vector3.new(0, -50, 0)
+                            task.wait(0.5)
+                        end
+                    else
+                        task.wait(0.2)
+                    end
+                end
+            end)
+        else
+            if AntiHitLoop then
+                task.cancel(AntiHitLoop)
+                AntiHitLoop = nil
+            end
+        end
+    end
+})
+
+local SpeedLoop
+MovementWindow:Slider({
+    Text = "SetSpeedBypass",
+    Minimum = 16,
+    Maximum = 37,
+    Default = 35,
+    Callback = function(val)
+        SpeedValue = val
+    end
+})
+
+MovementWindow:Toggle({
+    Text = "SpeedBypass",
+    Callback = function(state)
+        SpeedEnabled = state
+
+        if state then
+            SpeedLoop = RunService.RenderStepped:Connect(function()
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hrp and hum and hum.MoveDirection.Magnitude > 0 then
+                    hrp.Velocity = hum.MoveDirection * SpeedValue + Vector3.new(0, hrp.Velocity.Y, 0)
+                end
+            end)
+        else
+            if SpeedLoop then
+                SpeedLoop:Disconnect()
+                SpeedLoop = nil
+            end
         end
     end
 })
