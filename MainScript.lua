@@ -23,5 +23,5 @@ if scriptFound and scriptCode and not scriptCode:find("404") then
     loadstring(scriptCode)()
 else
     showNotification("Game Not Supported", "Launching Universal Script...")
-    loadstring(game:HttpGet(baseUrl .. "Universal.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/Universal.lua"))()
 end
