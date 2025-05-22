@@ -8,23 +8,25 @@ local SettingsWindow = Library:Window({Text = "Settings"})
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Lighting = game.Lighting
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character
 
 local ESPEnabled = false
 local InfiniteJumpEnabled = false
 local Vibe = false
 local FPSBoostEnabled = false
-local watermarkGui
+local watermarkGui = nil
 local watermarkEnabled = false
 local nametagConnections = {}
 
 UserInputService.JumpRequest:Connect(function()
     if InfiniteJumpEnabled then
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid:ChangeState("Jumping")
+        local character = LocalPlayer.Character
+        if character then
+            local humanoid = character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
         end
     end
 end)
