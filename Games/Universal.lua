@@ -22,7 +22,7 @@ local nametagConnections = {}
 
 UserInputService.JumpRequest:Connect(function()
     if InfiniteJumpEnabled then
-        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid:ChangeState("Jumping")
         end
