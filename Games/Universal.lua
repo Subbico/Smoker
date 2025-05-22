@@ -12,24 +12,11 @@ local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 
 local ESPEnabled = false
-local InfiniteJumpEnabled = false
 local Vibe = false
 local FPSBoostEnabled = false
 local watermarkGui = nil
 local watermarkEnabled = false
 local nametagConnections = {}
-
-UserInputService.JumpRequest:Connect(function()
-    if InfiniteJumpEnabled then
-        local character = LocalPlayer.Character
-        if character then
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end
-    end
-end)
 
 local function createNametag(player)
     if player == player then return end
@@ -120,13 +107,6 @@ local function toggleESP(state)
         clearNametags()
     end
 end
-
-MovementWindow:Toggle({
-    Text = "InfJumps",
-    Callback = function(state)
-        InfiniteJumpEnabled = state
-    end
-})
 
 VisualWindow:Toggle({
     Text = "Vibe",
