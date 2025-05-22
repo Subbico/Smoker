@@ -1,5 +1,6 @@
 local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/Library", true))()
 Library.DefaultColor = Color3.fromRGB(3, 73, 252)
+local Flags = Library.Flags
 
 local UtilityWindow = Library:Window({Text = "Utility"})
 local VisualWindow = Library:Window({Text = "Visual"})

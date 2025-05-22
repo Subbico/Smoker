@@ -22,13 +22,14 @@ local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local LocalPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
+local NotificationFolder = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Notifications"):WaitForChild("Notifications")
 
 --States
-local ESPEnabled, InfiniteJumpEnabled, AutoGGEnabled, AntiKnockbackEnabled = false, false, false, false
+local ESPEnabled, InfiniteJumpEnabled, AntiKnockbackEnabled = false, false, false
 local WatermarkEnabled, RGBEnabled, enabled, running, following = true, false, false, false, false
 local followConnection, antiKnockbackConnection, runConnection, characterAddedConnection, humanoidDiedConnection
 local originalCameraCFrame, currentTarget, lastSwingTime, watermarkGui = nil, nil, 0, nil
-local activeMethod, connection, FPSBoostEnabled, Vibe, autoToxicEnabled, HumanoidRootPart, character, staffDetectorEnabled = nil, nil, false, false, false, hrp, Character, false
+local activeMethod, connection, FPSBoostEnabled, Vibe, HumanoidRootPart, character, staffDetectorEnabled = nil, nil, false, false, hrp, Character, false
 local SpeedEnabled, AntiHitEnabled, SpeedValue = false, false, 16
 
 local character = player.Character or player.CharacterAdded:Wait()
@@ -56,6 +57,24 @@ UserInputService.JumpRequest:Connect(function()
         end
     end
 end)
+
+local function isInCityArea(pos)
+    local cityModel = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("City")
+    if not (cityModel and cityModel:IsA("Model")) then return false end
+
+    local cityRegion = cityModel:GetExtentsSize()
+    local cityCFrame = cityModel:GetModelCFrame()
+    local cityMin = cityCFrame.Position - (cityRegion / 2)
+    local cityMax = cityCFrame.Position + (cityRegion / 2)
+
+    return pos.X >= cityMin.X and pos.X <= cityMax.X and
+           pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
+           pos.Z >= cityMin.Z and pos.Z <= cityMax.Z
+end
+
+local function getHumanoidRootPart()
+    return LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+end
 
 local function getClosestPlayer(maxDistance)
     local closest, shortest = nil, maxDistance
@@ -173,7 +192,6 @@ local function toggleESP(state)
     end
 end
 
-
 local function resetCamera()
     if camera and camera.CameraType == Enum.CameraType.Scriptable then
         camera.CameraType = Enum.CameraType.Custom
@@ -251,6 +269,8 @@ local function CombatAura()
 
     disconnectLoop()
 
+    local clickToggle = false
+
     runConnection = RunService.RenderStepped:Connect(function()
         if not enabled then
             disconnectLoop()
@@ -295,7 +315,6 @@ local function CombatAura()
             end
         end
 
-
         if not currentTarget then
             local closestPlayer, distance = getClosestPlayer()
             if closestPlayer and distance <= 23 then
@@ -313,10 +332,29 @@ local function CombatAura()
                 camera.CameraType = Enum.CameraType.Scriptable
                 camera.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 2, 0), targetHead.Position)
 
-                if tick() - lastSwingTime >= 0.1 then
+                if tick() - lastSwingTime >= 0.05 then
                     lastSwingTime = tick()
                     if localSword.Parent == character then
                         localSword:Activate()
+
+                        local VirtualInputManager = game:GetService("VirtualInputManager")
+                        if clickToggle == false then
+                            clickToggle = true
+                            VirtualInputManager:SendMouseButtonEvent(0, 0, 1, true, game, 0)
+                            VirtualInputManager:SendMouseButtonEvent(0, 0, 1, false, game, 0)
+                        else
+                            clickToggle = false
+                            VirtualInputManager:SendMouseButtonEvent(0, 1, 1, true, game, 0)
+                            VirtualInputManager:SendMouseButtonEvent(0, 1, 1, false, game, 0)
+                        end
+
+                        local humanoid = character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            local state = humanoid:GetState()
+                            if state ~= Enum.HumanoidStateType.Jumping and state ~= Enum.HumanoidStateType.Freefall then
+                                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                            end
+                        end
                     end
                 end
 
@@ -393,19 +431,6 @@ local function isAnotherPlayerAlive(deadPlayer)
         end
     end
     return false
-end
-
-local function onHumanoidDied(deadPlayer)
-    if not AutoGGEnabled then return end
-    if isAnotherPlayerAlive(deadPlayer) then
-        local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
-        if channel then
-            local message = "gg " .. deadPlayer.DisplayName
-            channel:SendAsync(message)
-        else
-            warn("RBXGeneral channel not found.")
-        end
-    end
 end
 
 local function connectCharacter(character, player)
@@ -521,56 +546,6 @@ CombatWindow:Toggle({
     end
 })
 
-CombatWindow:Toggle({
-    Text = "TargetHead",
-    Callback = function(state)
-        following = state
-
-        if followConnection then
-            followConnection:Disconnect()
-            followConnection = nil
-        end
-
-        if following then
-            followConnection = RunService.Heartbeat:Connect(function()
-                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-                HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-
-                local cityModel = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("City")
-                local isInCity = false
-                if cityModel and cityModel:IsA("Model") then
-                    local cityRegion = cityModel:GetExtentsSize()
-                    local cityCFrame = cityModel:GetModelCFrame()
-                    local cityMin = cityCFrame.Position - (cityRegion / 2)
-                    local cityMax = cityCFrame.Position + (cityRegion / 2)
-
-                    local pos = HumanoidRootPart.Position
-                    if pos.X >= cityMin.X and pos.X <= cityMax.X and
-                    pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
-                    pos.Z >= cityMin.Z and pos.Z <= cityMax.Z then
-                        isInCity = true
-                    end
-                end
-
-                if not isInCity then
-                    local target = getClosestPlayer(20)
-
-                    if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("Humanoid") then
-                        local humanoid = target.Character.Humanoid
-                        if humanoid.Health > 0 then
-                            local targetHead = target.Character.Head
-                            local desiredPosition = targetHead.Position + Vector3.new(0, 8, 0)
-                            local direction = (desiredPosition - HumanoidRootPart.Position).Unit
-                            local speed = 20
-                            HumanoidRootPart.Velocity = direction * speed
-                        end
-                    end
-                end
-            end)
-        end
-    end
-})
-
 MovementWindow:Toggle({
     Text = "InfJumps",
     Callback = function(state)
@@ -578,31 +553,69 @@ MovementWindow:Toggle({
     end
 })
 
-UtilityWindow:Toggle({
-    Text = "AutoToxic",
-    Callback = function(state)
-        autoToxicEnabled = state
-        if autoToxicEnabled then
-            spawn(function()
-                while autoToxicEnabled do
-                    local otherPlayers = {}
-                    for _, player in ipairs(Players:GetPlayers()) do
-                        if player ~= LocalPlayer then
-                            table.insert(otherPlayers, player)
-                        end
-                    end
+local Messages = {
+    "L %s got cooked by %s",
+    "GG %s",
+    "W pvp sense %s",
+    "Aww %s, maybe %s is meta"
+}
 
-                    if #otherPlayers > 0 then
-                        local randomPlayer = otherPlayers[math.random(1, #otherPlayers)]
-                        local randomMsgTemplate = messages[math.random(1, #messages)]
-                        local msg = string.format(randomMsgTemplate, randomPlayer.Name)
-                        TextChatService.TextChannels.RBXGeneral:SendAsync(msg)
-                    end
-
-                    wait(10)
-                end
-            end)
+local killFeedConnection = nil
+local myDisplayName = LocalPlayer.DisplayName
+local myName = LocalPlayer.Name
+UtilityWindow:Dropdown({
+    Text = "AutoToxic Mode",
+    List = {"Off", "AutoGG", "AutoL", "AutoToxic"},
+    Callback = function(selected)
+        if killFeedConnection then
+            killFeedConnection:Disconnect()
+            killFeedConnection = nil
         end
+
+        if selected == "Off" then return end
+
+        killFeedConnection = NotificationFolder.ChildAdded:Connect(function(child)
+            if child:IsA("TextLabel") then
+                task.wait(0.1)
+                local rawText = child.Text
+
+                local names = {}
+                for name in rawText:gmatch("<font color='#ffffff'>(.-)</font>") do
+                    table.insert(names, name)
+                end
+
+                if #names >= 2 then
+                    local killedName = names[1]
+                    local killerName = names[2]
+
+                    if killerName == myDisplayName or killerName == myName then
+                        local deadPlayer = nil
+                        for _, plr in pairs(Players:GetPlayers()) do
+                            if plr.DisplayName == killedName or plr.Name == killedName then
+                                deadPlayer = plr
+                                break
+                            end
+                        end
+                        if not deadPlayer then return end
+
+                        local channel = TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+                        if not channel then return end
+
+                        local message = ""
+                        if selected == "AutoGG" then
+                            message = "gg " .. deadPlayer.DisplayName .. " | imusingsmxkclient"
+                        elseif selected == "AutoL" then
+                            message = "L " .. deadPlayer.DisplayName .. " | imusingsmxkclient"
+                        elseif selected == "AutoToxic" then
+                            local fmt = Messages[math.random(1, #Messages)]
+                            message = string.format(fmt, deadPlayer.DisplayName, myDisplayName) .. " | imusingsmxkclient"
+                        end
+
+                        channel:SendAsync(message)
+                    end
+                end
+            end
+        end)
     end
 })
 
@@ -788,69 +801,94 @@ MovementWindow:Keybind({
     end
 })
 
-CombatWindow:Toggle({
-    Text = "TargetBack",
-    Callback = function(state)
-        following = state
+local modes = {
+    ["TargetHead"] = function()
+        return RunService.Heartbeat:Connect(function()
+            local HumanoidRootPart = getHumanoidRootPart()
+            if not HumanoidRootPart then return end
+            if isInCityArea(HumanoidRootPart.Position) then return end
 
+            local target = getClosestPlayer(20)
+            if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("Humanoid") then
+                local humanoid = target.Character.Humanoid
+                if humanoid.Health > 0 then
+                    local desiredPosition = target.Character.Head.Position + Vector3.new(0, 8, 0)
+                    local direction = (desiredPosition - HumanoidRootPart.Position).Unit
+                    HumanoidRootPart.Velocity = direction * 20
+                end
+            end
+        end)
+    end,
+
+    ["TargetBack"] = function()
+        return RunService.Heartbeat:Connect(function()
+            local HumanoidRootPart = getHumanoidRootPart()
+            if not HumanoidRootPart then return end
+            if isInCityArea(HumanoidRootPart.Position) then return end
+
+            local target = getClosestPlayer(20)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
+                local humanoid = target.Character.Humanoid
+                if humanoid.Health > 0 then
+                    local targetHRP = target.Character.HumanoidRootPart
+                    local backPosition = targetHRP.Position - (targetHRP.CFrame.LookVector * 5) + Vector3.new(0, 2, 0)
+                    local direction = (backPosition - HumanoidRootPart.Position).Unit
+                    HumanoidRootPart.Velocity = direction * 40
+                end
+            end
+        end)
+    end,
+
+    ["TargetSafe"] = function()
+        rotationAngle = 0
+        return RunService.Heartbeat:Connect(function(deltaTime)
+            local HumanoidRootPart = getHumanoidRootPart()
+            if not HumanoidRootPart then return end
+
+            local target = getPlayerWithLowestHealth(20)
+            if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
+                local humanoid = target.Character.Humanoid
+                if humanoid.Health <= 0 then return end
+
+                local targetHRP = target.Character.HumanoidRootPart
+                if isInCityArea(targetHRP.Position) then return end
+
+                local direction = (targetHRP.Position - HumanoidRootPart.Position)
+                local rayParams = RaycastParams.new()
+                rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                rayParams.IgnoreWater = true
+
+                local rayResult = workspace:Raycast(HumanoidRootPart.Position, direction, rayParams)
+                if rayResult and not target.Character:IsAncestorOf(rayResult.Instance) then return end
+
+                rotationAngle = (rotationAngle + rotationSpeed * deltaTime) % (math.pi * 2)
+                local offset = Vector3.new(math.cos(rotationAngle) * 5, 4, math.sin(rotationAngle) * 5)
+                local desiredPosition = targetHRP.Position + offset
+                local moveDirection = desiredPosition - HumanoidRootPart.Position
+                local distance = moveDirection.Magnitude
+
+                HumanoidRootPart.Velocity = distance > 0
+                    and moveDirection.Unit * math.min(distance / deltaTime, 28)
+                    or Vector3.new(0, 0, 0)
+            end
+        end)
+    end,
+}
+
+local followConnection
+
+CombatWindow:Dropdown({
+    Text = "Follow Mode",
+    List = {"None", "TargetHead", "TargetBack", "TargetSafe"},
+    Callback = function(selected)
         if followConnection then
             followConnection:Disconnect()
             followConnection = nil
         end
 
-        if following then
-            followConnection = RunService.Heartbeat:Connect(function()
-                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-                local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-
-                local cityModel = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("City")
-                local isInCity = false
-                if cityModel and cityModel:IsA("Model") then
-                    local cityRegion = cityModel:GetExtentsSize()
-                    local cityCFrame = cityModel:GetModelCFrame()
-                    local cityMin = cityCFrame.Position - (cityRegion / 2)
-                    local cityMax = cityCFrame.Position + (cityRegion / 2)
-
-                    local pos = HumanoidRootPart.Position
-                    if pos.X >= cityMin.X and pos.X <= cityMax.X and
-                       pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
-                       pos.Z >= cityMin.Z and pos.Z <= cityMax.Z then
-                        isInCity = true
-                    end
-                end
-
-                if not isInCity then
-                    local target = getClosestPlayer(20)
-
-                    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
-                        local humanoid = target.Character.Humanoid
-                        if humanoid.Health > 0 then
-                            local targetHRP = target.Character.HumanoidRootPart
-
-                            local backPosition = targetHRP.Position - (targetHRP.CFrame.LookVector * 5) + Vector3.new(0, 2, 0)
-
-                            local direction = (backPosition - HumanoidRootPart.Position).Unit
-                            local speed = 40
-                            HumanoidRootPart.Velocity = direction * speed
-                        end
-                    end
-                end
-            end)
-        end
-    end
-})
-
-UtilityWindow:Toggle({
-    Text = "AutoGG",
-    Callback = function(enabled)
-        AutoGGEnabled = enabled
-        if enabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                connectPlayer(player)
-            end
-            Players.PlayerAdded:Connect(connectPlayer)
-        else
-            disconnectAll()
+        if selected ~= "None" and modes[selected] then
+            followConnection = modes[selected]()
         end
     end
 })
@@ -890,79 +928,6 @@ UtilityWindow:Toggle({
                 if staffDetectorEnabled then
                     task.wait(1)
                     checkPlayer(player)
-                end
-            end)
-        end
-    end
-})
-
-CombatWindow:Toggle({
-    Text = "TargetSafe",
-    Callback = function(state)
-        if followConnection then
-            followConnection:Disconnect()
-            followConnection = nil
-        end
-
-        if state then
-            rotationAngle = 0
-
-            followConnection = RunService.Heartbeat:Connect(function(deltaTime)
-                if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-                local HumanoidRootPart = LocalPlayer.Character.HumanoidRootPart
-
-                local target = getPlayerWithLowestHealth(20)
-                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
-                    local humanoid = target.Character.Humanoid
-                    if humanoid.Health > 0 then
-                        local targetHRP = target.Character.HumanoidRootPart
-
-                        local cityModel = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("City")
-                        local isInCity = false
-                        if cityModel and cityModel:IsA("Model") then
-                            local cityRegion = cityModel:GetExtentsSize()
-                            local cityCFrame = cityModel:GetModelCFrame()
-                            local cityMin = cityCFrame.Position - (cityRegion / 2)
-                            local cityMax = cityCFrame.Position + (cityRegion / 2)
-
-                            local pos = targetHRP.Position
-                            if pos.X >= cityMin.X and pos.X <= cityMax.X and
-                               pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
-                               pos.Z >= cityMin.Z and pos.Z <= cityMax.Z then
-                                isInCity = true
-                            end
-                        end
-
-                        if isInCity then return end
-
-                        local direction = (targetHRP.Position - HumanoidRootPart.Position)
-                        local rayParams = RaycastParams.new()
-                        rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-                        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                        rayParams.IgnoreWater = true
-
-                        local rayResult = workspace:Raycast(HumanoidRootPart.Position, direction, rayParams)
-                        if rayResult and not target.Character:IsAncestorOf(rayResult.Instance) then
-                            return
-                        end
-
-                        rotationAngle = rotationAngle + rotationSpeed * deltaTime
-                        if rotationAngle > math.pi * 2 then
-                            rotationAngle = rotationAngle - math.pi * 2
-                        end
-
-                        local offset = Vector3.new(math.cos(rotationAngle) * 5, 4, math.sin(rotationAngle) * 5)
-                        local desiredPosition = targetHRP.Position + offset
-
-                        local moveDirection = (desiredPosition - HumanoidRootPart.Position)
-                        local distance = moveDirection.Magnitude
-                        if distance > 0 then
-                            local moveSpeed = math.min(distance / deltaTime, 28)
-                            HumanoidRootPart.Velocity = moveDirection.Unit * moveSpeed
-                        else
-                            HumanoidRootPart.Velocity = Vector3.new(0, 0, 0)
-                        end
-                    end
                 end
             end)
         end
