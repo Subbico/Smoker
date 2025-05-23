@@ -937,8 +937,8 @@ local SpeedVal = 16
 MovementWindow:Slider({
     Text = "SetSpeedBypass",
     Minimum = 16,
-    Maximum = 37,
-    Default = 35,
+    Maximum = 28,
+    Default = 28,
     Callback = function(val)
         SpeedVal = val
     end
