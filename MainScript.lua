@@ -1,29 +1,18 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
-local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
-local userId = tostring(player.UserId)
 local gameId = game.PlaceId
-local baseUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/"
+local PathURL = "https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/"
 
-local function showNotification(title, text)
-    StarterGui:SetCore("SendNotification", {
-        Title = title,
-        Text = text,
-        Duration = 5
-    })
-end
-
-local scriptUrl = baseUrl .. gameId .. ".lua"
-local scriptFound, scriptCode = pcall(function()
+local scriptUrl = PathURL .. gameId .. ".lua"
+local SF, SC = pcall(function()
     return game:HttpGet(scriptUrl)
 end)
 
-if scriptFound and scriptCode and not scriptCode:find("404") then
-    loadstring(scriptCode)()
+if SF and SC and not SC:find("404") then
+    loadstring(SC)()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/checkwhitelist.lua"))()
 else
-    showNotification("Game Not Supported", "Launching Universal Script...")
     loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/Universal.lua"))()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/checkwhitelist.lua"))()
 end
