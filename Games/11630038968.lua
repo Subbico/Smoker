@@ -745,7 +745,13 @@ local modes = {
             if not HumanoidRootPart then return end
             if isInCityArea(HumanoidRootPart.Position) then return end
 
-            local target = ClosestPlayer(20)
+            local target = CurrentTarget
+            if not target then
+                target = ClosestPlayer(20)
+                if target then
+                    CurrentTarget = target
+                end
+            end
             if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health > 0 then
@@ -763,7 +769,13 @@ local modes = {
             if not HumanoidRootPart then return end
             if isInCityArea(HumanoidRootPart.Position) then return end
 
-            local target = ClosestPlayer(20)
+            local target = CurrentTarget
+            if not target then
+                target = ClosestPlayer(20)
+                if target then
+                    CurrentTarget = target
+                end
+            end
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health > 0 then
@@ -782,7 +794,13 @@ local modes = {
             local HumanoidRootPart = getHumanoidRootPart()
             if not HumanoidRootPart then return end
 
-            local target = PlayerLowHP(20)
+            local target = CurrentTarget
+            if not target then
+                target = PlayerLowHP(20)
+                if target then
+                    CurrentTarget = target
+                end
+            end
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health <= 0 then return end
