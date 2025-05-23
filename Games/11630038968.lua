@@ -22,15 +22,14 @@ local Workspace = game:GetService("Workspace")
 local player = Players.LocalPlayer
 local LocalPlayer = Players.LocalPlayer
 local camera = Workspace.CurrentCamera
-local NotificationFolder = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Notifications"):WaitForChild("Notifications")
+local KillFeed = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Notifications"):WaitForChild("Notifications")
 
 --States
-local ESPEnabled, InfiniteJumpEnabled, AntiKnockbackEnabled = false, false, false
-local WatermarkEnabled, RGBEnabled, enabled, running, following = true, false, false, false, false
-local followConnection, antiKnockbackConnection, runConnection, characterAddedConnection, humanoidDiedConnection
-local originalCameraCFrame, currentTarget, lastSwingTime, watermarkGui = nil, nil, 0, nil
-local activeMethod, connection, FPSBoostEnabled, Vibe, HumanoidRootPart, character, staffDetectorEnabled = nil, nil, false, false, hrp, Character, false
-local SpeedEnabled, AntiHitEnabled, SpeedValue = false, false, 16
+local NameTagsVar, InfJumpsVar, AntiKBVar = false, false, false
+local RGBVar, KAVar, LongJumpVar = false, false, false
+local TargetVar, AntiKBConnect, RunKAConnect, CharAddedConnect, CharDiedConnect
+local PreCameraCFrame, CurrentTarget, LastSwing = nil, nil, 0
+local FPSBoostVar, VibeVar, HumanoidRootPart, character = false, false, hrp, Character
 
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
@@ -41,7 +40,7 @@ local rotationSpeed = math.rad(360)
 local SwordItems = {"WoodenSword", "TemplateSword", "DiamondSword", "GoldSword", "Sword"}
 local nametagConnections = {}
 local connections = {}
-local messages = {
+local Messages = {
     "L %s",
     "smxke.on.top",
     "smxke.own.this",
@@ -50,7 +49,7 @@ local messages = {
 
 --Functions
 UserInputService.JumpRequest:Connect(function()
-    if InfiniteJumpEnabled then
+    if InfJumpsVar then
         local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid:ChangeState("Jumping")
@@ -76,7 +75,7 @@ local function getHumanoidRootPart()
     return LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
 end
 
-local function getClosestPlayer(maxDistance)
+local function ClosestPlayer(maxDistance)
     local closest, shortest = nil, maxDistance
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -90,7 +89,7 @@ local function getClosestPlayer(maxDistance)
     return closest
 end
 
-local function createNametag(player)
+local function NameTagCreate(player)
     if player == LocalPlayer then return end
 
     if nametagConnections[player] then
@@ -134,7 +133,7 @@ local function createNametag(player)
 
         local updateConn
         updateConn = RunService.RenderStepped:Connect(function()
-            if not ESPEnabled then
+            if not NameTagsVar then
                 textLabel.Text = ""
                 return
             end
@@ -181,40 +180,29 @@ local function clearNametags()
     end
 end
 
-local function toggleESP(state)
-    ESPEnabled = state
-    if state then
-        for _, player in pairs(Players:GetPlayers()) do
-            createNametag(player)
-        end
-    else
-        clearNametags()
-    end
-end
-
-local function resetCamera()
+local function ResetCam()
     if camera and camera.CameraType == Enum.CameraType.Scriptable then
         camera.CameraType = Enum.CameraType.Custom
-        if originalCameraCFrame then
-            camera.CFrame = originalCameraCFrame
-            originalCameraCFrame = nil
+        if PreCameraCFrame then
+            camera.CFrame = PreCameraCFrame
+            PreCameraCFrame = nil
         end
     end
 end
 
-local function disconnectLoop()
-    if runConnection then
-        runConnection:Disconnect()
-        runConnection = nil
+local function KALoopDisconnect()
+    if RunKAConnect then
+        RunKAConnect:Disconnect()
+        RunKAConnect = nil
     end
-    if humanoidDiedConnection then
-        humanoidDiedConnection:Disconnect()
-        humanoidDiedConnection = nil
+    if CharDiedConnect then
+        CharDiedConnect:Disconnect()
+        CharDiedConnect = nil
     end
-    resetCamera()
+    ResetCam()
 end
 
-local function getClosestPlayer()
+local function ClosestPlayer()
     local character = player.Character
     if not character then return nil end
 
@@ -263,28 +251,28 @@ local function getSword(character)
     return nil
 end
 
-local function CombatAura()
+local function KillAuraFunc()
     local character = player.Character or player.CharacterAdded:Wait()
     local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
-    disconnectLoop()
+    KALoopDisconnect()
 
     local clickToggle = false
 
-    runConnection = RunService.RenderStepped:Connect(function()
-        if not enabled then
-            disconnectLoop()
+    RunKAConnect = RunService.RenderStepped:Connect(function()
+        if not KAVar then
+                KALoopDisconnect()
             return
         end
 
         if not character.Parent then
-            disconnectLoop()
+                KALoopDisconnect()
             return
         end
 
         local localSword = getSword(character)
         if not localSword then
-            resetCamera()
+                ResetCam()
             return
         end
 
@@ -305,35 +293,35 @@ local function CombatAura()
             end
         end
 
-        if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("Humanoid") then
-            local targetHumanoid = currentTarget.Character.Humanoid
-            local targetHRP = currentTarget.Character:FindFirstChild("HumanoidRootPart")
+        if CurrentTarget and CurrentTarget.Character and CurrentTarget.Character:FindFirstChild("Humanoid") then
+            local targetHumanoid = CurrentTarget.Character.Humanoid
+            local targetHRP = CurrentTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHumanoid.Health <= 0 or not targetHRP then
-                currentTarget = nil
+                CurrentTarget = nil
             elseif (targetHRP.Position - humanoidRootPart.Position).Magnitude > 23 then
-                currentTarget = nil
+                CurrentTarget = nil
             end
         end
 
-        if not currentTarget then
-            local closestPlayer, distance = getClosestPlayer()
+        if not CurrentTarget then
+            local closestPlayer, distance = ClosestPlayer()
             if closestPlayer and distance <= 23 then
-                currentTarget = closestPlayer
+                CurrentTarget = closestPlayer
             end
         end
 
-        if not isInCity and currentTarget and currentTarget.Character then
-            local targetHead = currentTarget.Character:FindFirstChild("Head")
+        if not isInCity and CurrentTarget and CurrentTarget.Character then
+            local targetHead = CurrentTarget.Character:FindFirstChild("Head")
             if targetHead then
-                if not originalCameraCFrame and camera.CameraType ~= Enum.CameraType.Scriptable then
-                    originalCameraCFrame = camera.CFrame
+                if not PreCameraCFrame and camera.CameraType ~= Enum.CameraType.Scriptable then
+                    PreCameraCFrame = camera.CFrame
                 end
 
                 camera.CameraType = Enum.CameraType.Scriptable
                 camera.CFrame = CFrame.new(humanoidRootPart.Position + Vector3.new(0, 2, 0), targetHead.Position)
 
-                if tick() - lastSwingTime >= 0.05 then
-                    lastSwingTime = tick()
+                if tick() - LastSwing >= 0.05 then
+                    LastSwing = tick()
                     if localSword.Parent == character then
                         localSword:Activate()
 
@@ -364,28 +352,28 @@ local function CombatAura()
 
         if camera.CameraType == Enum.CameraType.Scriptable then
             camera.CameraType = Enum.CameraType.Custom
-            if originalCameraCFrame then
-                camera.CFrame = originalCameraCFrame
-                originalCameraCFrame = nil
+            if PreCameraCFrame then
+                camera.CFrame = PreCameraCFrame
+                PreCameraCFrame = nil
             end
         end
     end)
 
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if humanoid then
-        humanoidDiedConnection = humanoid.Died:Connect(function()
-            disconnectLoop()
-            currentTarget = nil
+        CharDiedConnect = humanoid.Died:Connect(function()
+            KALoopDisconnect()
+            CurrentTarget = nil
         end)
     end
 end
 
 local function onCharacterAdded(character)
     wait(1)
-    if enabled then
-        CombatAura()
+    if KAVar then
+        KillAuraFunc()
     else
-        resetCamera()
+        ResetCam()
     end
 end
 
@@ -402,8 +390,8 @@ local function isInCity()
 
         local pos = hrp.Position
         return pos.X >= cityMin.X and pos.X <= cityMax.X and
-               pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
-               pos.Z >= cityMin.Z and pos.Z <= cityMax.Z
+        pos.Y >= cityMin.Y and pos.Y <= cityMax.Y and
+        pos.Z >= cityMin.Z and pos.Z <= cityMax.Z
     end
 
     return false
@@ -414,51 +402,11 @@ local function IsAlive(char)
     return hum and hum.Health > 0
 end
 
-if not characterAddedConnection then
-    characterAddedConnection = player.CharacterAdded:Connect(onCharacterAdded)
+if not CharAddedConnect then
+    CharAddedConnect = player.CharacterAdded:Connect(onCharacterAdded)
 end
 
-local function isAnotherPlayerAlive(deadPlayer)
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= deadPlayer then
-            local character = player.Character
-            if character then
-                local humanoid = character:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
-                    return true
-                end
-            end
-        end
-    end
-    return false
-end
-
-local function connectCharacter(character, player)
-    local humanoid = character:WaitForChild("Humanoid")
-    local conn = humanoid.Died:Connect(function()
-        onHumanoidDied(player)
-    end)
-    table.insert(connections, conn)
-end
-
-local function connectPlayer(player)
-    if player.Character then
-        connectCharacter(player.Character, player)
-    end
-    local conn = player.CharacterAdded:Connect(function(character)
-        connectCharacter(character, player)
-    end)
-    table.insert(connections, conn)
-end
-
-local function disconnectAll()
-    for _, conn in pairs(connections) do
-        conn:Disconnect()
-    end
-    connections = {}
-end
-
-local function getPlayerWithLowestHealth(range)
+local function PlayerLowHP(range)
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
     local hrp = character.HumanoidRootPart
@@ -482,30 +430,12 @@ local function getPlayerWithLowestHealth(range)
     return lowestHealthPlayer
 end
 
-local function isLineOfSightClear(origin, targetPosition)
-    local direction = targetPosition - origin
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {LocalPlayer.Character}
-    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-    raycastParams.IgnoreWater = true
-
-    local raycastResult = Workspace:Raycast(origin, direction, raycastParams)
-    if raycastResult then
-        local distanceToHit = (raycastResult.Position - origin).Magnitude
-        local distanceToTarget = direction.Magnitude
-        if distanceToHit < distanceToTarget then
-            return false
-        end
-    end
-    return true
-end
-
 --Features
 SettingsWindow:Dropdown({
     Text = "Theme",
     List = {"Dark", "White", "Aqua", "Nova", "RGB"},
     Callback = function(theme)
-        RGBEnabled = false
+        RGBVar = false
 
         if theme == "Dark" then
             Library.DefaultColor = Color3.fromRGB(0, 0, 0)
@@ -516,11 +446,11 @@ SettingsWindow:Dropdown({
         elseif theme == "Nova" then
             Library.DefaultColor = Color3.fromRGB(255, 0, 234)
         elseif theme == "RGB" then
-            RGBEnabled = true
+            RGBVar = true
             task.spawn(function()
-                while RGBEnabled do
+                while RGBVar do
                     for hue = 0, 1, 0.01 do
-                        if not RGBEnabled then break end
+                        if not RGBVar then break end
                         Library.DefaultColor = Color3.fromHSV(hue, 1, 1)
                         task.wait(0.03)
                     end
@@ -535,13 +465,13 @@ SettingsWindow:Dropdown({
 CombatWindow:Toggle({
     Text = "KillAura",
     Callback = function(state)
-        enabled = state
-        if enabled then
+        KAVar = state
+        if KAVar then
             if player.Character then
-                CombatAura()
+                KillAuraFunc()
             end
         else
-            disconnectLoop()
+            KALoopDisconnect()
         end
     end
 })
@@ -549,32 +479,25 @@ CombatWindow:Toggle({
 MovementWindow:Toggle({
     Text = "InfJumps",
     Callback = function(state)
-        InfiniteJumpEnabled = state
+        InfJumpsVar = state
     end
 })
 
-local Messages = {
-    "L %s got cooked by %s",
-    "GG %s",
-    "W pvp sense %s",
-    "Aww %s, maybe %s is meta"
-}
-
-local killFeedConnection = nil
-local myDisplayName = LocalPlayer.DisplayName
-local myName = LocalPlayer.Name
+local KillFeedConnect = nil
+local LocalPlrDisplay = LocalPlayer.DisplayName
+local LocalPlrName = LocalPlayer.Name
 UtilityWindow:Dropdown({
     Text = "AutoToxic Mode",
     List = {"Off", "AutoGG", "AutoL", "AutoToxic"},
     Callback = function(selected)
-        if killFeedConnection then
-            killFeedConnection:Disconnect()
-            killFeedConnection = nil
+        if KillFeedConnect then
+            KillFeedConnect:Disconnect()
+            KillFeedConnect = nil
         end
 
         if selected == "Off" then return end
 
-        killFeedConnection = NotificationFolder.ChildAdded:Connect(function(child)
+        KillFeedConnect = KillFeed.ChildAdded:Connect(function(child)
             if child:IsA("TextLabel") then
                 task.wait(0.1)
                 local rawText = child.Text
@@ -588,7 +511,7 @@ UtilityWindow:Dropdown({
                     local killedName = names[1]
                     local killerName = names[2]
 
-                    if killerName == myDisplayName or killerName == myName then
+                    if killerName == LocalPlrDisplay or killerName == LocalPlrName then
                         local deadPlayer = nil
                         for _, plr in pairs(Players:GetPlayers()) do
                             if plr.DisplayName == killedName or plr.Name == killedName then
@@ -608,7 +531,7 @@ UtilityWindow:Dropdown({
                             message = "L " .. deadPlayer.DisplayName .. " | imusingsmxkclient"
                         elseif selected == "AutoToxic" then
                             local fmt = Messages[math.random(1, #Messages)]
-                            message = string.format(fmt, deadPlayer.DisplayName, myDisplayName) .. " | imusingsmxkclient"
+                            message = string.format(fmt, deadPlayer.DisplayName, LocalPlrDisplay) .. " | imusingsmxkclient"
                         end
 
                         channel:SendAsync(message)
@@ -622,9 +545,9 @@ UtilityWindow:Dropdown({
 MovementWindow:Toggle({
     Text = "AntiKnockback Beta",
     Callback = function(state)
-        antiKnockbackEnabled = state
-        if antiKnockbackEnabled then
-            antiKnockbackConnection = RunService.Heartbeat:Connect(function()
+        AntiKBVar = state
+        if AntiKBVar then
+            AntiKBConnect = RunService.Heartbeat:Connect(function()
                 if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = player.Character.HumanoidRootPart
                     hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
@@ -632,9 +555,9 @@ MovementWindow:Toggle({
                 end
             end)
         else
-            if antiKnockbackConnection then
-                antiKnockbackConnection:Disconnect()
-                antiKnockbackConnection = nil
+            if AntiKBConnect then
+                AntiKBConnect:Disconnect()
+                AntiKBConnect = nil
             end
         end
     end
@@ -643,8 +566,8 @@ MovementWindow:Toggle({
 VisualWindow:Toggle({
     Text = "Vibe",
     Callback = function(state)
-        Vibe = state
-        if Vibe == true then
+        VibeVar = state
+        if VibeVar == true then
             Lighting.TimeOfDay = "00:00:00"
             Lighting.Ambient = Color3.fromRGB(0, 85, 255)
             Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
@@ -658,14 +581,26 @@ VisualWindow:Toggle({
 VisualWindow:Toggle({
     Text = "Nametags",
     Callback = function(state)
-        toggleESP(state)
+
+        local function NameTagsFunc(state)
+            NameTagsVar = state
+            if state then
+                for _, player in pairs(Players:GetPlayers()) do
+                    NameTagCreate(player)
+                end
+            else
+                clearNametags()
+            end
+        end
+
+        NameTagsFunc(state)
     end
 })
 
 VisualWindow:Toggle({
     Text = "FPSBoost",
     Callback = function(state)
-        FPSBoostEnabled = state
+        FPSBoostVar = state
 
         if state then
             for _, obj in ipairs(workspace:GetDescendants()) do
@@ -705,20 +640,22 @@ CreditsWindow:Label({
    Color = Library.DefaultColor
 })
 
+local WatermarkState = nil
+local WatermarkVar = false
 CreditsWindow:Toggle({
     Text = "Watermark",
     Callback = function(state)
-        watermarkEnabled = state
+        WatermarkVar = state
 
         if state then
-            if not watermarkGui then
-                watermarkGui = Instance.new("ScreenGui")
-                watermarkGui.Name = "SmokerWatermark"
-                watermarkGui.ResetOnSpawn = false
-                watermarkGui.IgnoreGuiInset = true
-                watermarkGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-                watermarkGui.DisplayOrder = 100
-                watermarkGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+            if not WatermarkState then
+                WatermarkState = Instance.new("ScreenGui")
+                WatermarkState.Name = "SmokerWatermark"
+                WatermarkState.ResetOnSpawn = false
+                WatermarkState.IgnoreGuiInset = true
+                WatermarkState.ZIndexBehavior = Enum.ZIndexBehavior.Global
+                WatermarkState.DisplayOrder = 100
+                WatermarkState.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
                 local container = Instance.new("Frame")
                 container.Name = "WatermarkContainer"
@@ -728,7 +665,7 @@ CreditsWindow:Toggle({
                 container.BackgroundTransparency = 0.25
                 container.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
                 container.BorderSizePixel = 0
-                container.Parent = watermarkGui
+                container.Parent = WatermarkState
 
                 local logo = Instance.new("ImageLabel")
                 logo.Name = "Logo"
@@ -755,7 +692,7 @@ CreditsWindow:Toggle({
                 local design = Instance.new("UICorner")
                 design.Parent = container
             else
-                watermarkGui.Enabled = true
+                WatermarkState.Enabled = true
             end
 
             local playerGui = game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -767,8 +704,8 @@ CreditsWindow:Toggle({
                 end
             end
         else
-            if watermarkGui then
-                watermarkGui.Enabled = false
+            if WatermarkState then
+                WatermarkState.Enabled = false
             end
         end
     end
@@ -779,7 +716,7 @@ MovementWindow:Keybind({
     Default = Enum.KeyCode.L,
     Callback = function()
 
-        local function doLongJump()
+        local function LongJumpFunc()
             local character = player.Character
             if not character then return end
 
@@ -794,9 +731,9 @@ MovementWindow:Keybind({
             rootPart.CFrame = rootPart.CFrame + jumpVector
         end
 
-        enabled = not enabled
-        if enabled then
-            doLongJump()
+        LongJumpVar = not LongJumpVar
+        if LongJumpVar then
+            LongJumpFunc()
         end
     end
 })
@@ -808,7 +745,7 @@ local modes = {
             if not HumanoidRootPart then return end
             if isInCityArea(HumanoidRootPart.Position) then return end
 
-            local target = getClosestPlayer(20)
+            local target = ClosestPlayer(20)
             if target and target.Character and target.Character:FindFirstChild("Head") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health > 0 then
@@ -826,7 +763,7 @@ local modes = {
             if not HumanoidRootPart then return end
             if isInCityArea(HumanoidRootPart.Position) then return end
 
-            local target = getClosestPlayer(20)
+            local target = ClosestPlayer(20)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health > 0 then
@@ -845,7 +782,7 @@ local modes = {
             local HumanoidRootPart = getHumanoidRootPart()
             if not HumanoidRootPart then return end
 
-            local target = getPlayerWithLowestHealth(20)
+            local target = PlayerLowHP(20)
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health <= 0 then return end
@@ -876,23 +813,22 @@ local modes = {
     end,
 }
 
-local followConnection
-
 CombatWindow:Dropdown({
     Text = "Follow Mode",
     List = {"None", "TargetHead", "TargetBack", "TargetSafe"},
     Callback = function(selected)
-        if followConnection then
-            followConnection:Disconnect()
-            followConnection = nil
+        if TargetVar then
+            TargetVar:Disconnect()
+            TargetVar = nil
         end
 
         if selected ~= "None" and modes[selected] then
-            followConnection = modes[selected]()
+            TargetVar = modes[selected]()
         end
     end
 })
 
+local StaffDetectVar = false
 UtilityWindow:Toggle({
     Text = "StaffDetector",
     Callback = function(state)
@@ -905,19 +841,18 @@ UtilityWindow:Toggle({
 
                 if success and rank > 1 then
                     local roleName = player:GetRoleInGroup(6604847)
-                    print("[StaffDetector] Staff detected: " .. player.Name .. " - Rank: " .. roleName)
                     Library:Notification({
                         Text = "Staff Detected! " .. player.Name .. " is a " .. roleName,
                         Duration = 20,
                         Color = Color3.fromRGB(255, 0, 34)
                     })
                 else
-                    print("[StaffDetector] No role detected for: ", player.Name, "(Rank:", rank .. ")")
+                    
                 end
             end
         end
         
-        staffDetectorEnabled = state
+        StaffDetectVar = state
 
         if state then
             for _, player in pairs(game.Players:GetPlayers()) do
@@ -925,7 +860,7 @@ UtilityWindow:Toggle({
             end
 
             game.Players.PlayerAdded:Connect(function(player)
-                if staffDetectorEnabled then
+                if StaffDetectVar then
                     task.wait(1)
                     checkPlayer(player)
                 end
@@ -935,38 +870,38 @@ UtilityWindow:Toggle({
 })
 
 local AntiHitLoop
-
-local function getAntiHitPlayer(maxDist)
-    local closest, shortest = nil, maxDist or 25
-    local myChar = LocalPlayer.Character
-    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    if not myHRP then return nil end
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and IsAlive(player.Character) then
-            local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP then
-                local dist = (myHRP.Position - targetHRP.Position).Magnitude
-                if dist <= shortest then
-                    closest = player
-                    shortest = dist
-                end
-            end
-        end
-    end
-
-    return closest
-end
-
+local AntiHitVar = false
 CombatWindow:Toggle({
     Text = "AntiHit",
     Callback = function(state)
-        AntiHitEnabled = state
 
+        local function AntiHitPlayer(maxDist)
+            local closest, shortest = nil, maxDist or 25
+            local myChar = LocalPlayer.Character
+            local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+            if not myHRP then return nil end
+
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and IsAlive(player.Character) then
+                    local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHRP then
+                        local dist = (myHRP.Position - targetHRP.Position).Magnitude
+                        if dist <= shortest then
+                            closest = player
+                            shortest = dist
+                        end
+                    end
+                end
+            end
+
+            return closest
+        end
+
+        AntiHitVar = state
         if state then
             AntiHitLoop = task.spawn(function()
-                while AntiHitEnabled do
-                    local target = getAntiHitPlayer(25)
+                while AntiHitVar do
+                    local target = AntiHitPlayer(25)
                     local myChar = LocalPlayer.Character
                     local hrp = myChar and myChar:FindFirstChild("HumanoidRootPart")
 
@@ -997,28 +932,28 @@ CombatWindow:Toggle({
 })
 
 local SpeedLoop
+local SpeedVar = false
+local SpeedVal = 16
 MovementWindow:Slider({
     Text = "SetSpeedBypass",
     Minimum = 16,
     Maximum = 37,
     Default = 35,
     Callback = function(val)
-        SpeedValue = val
+        SpeedVal = val
     end
 })
-
 MovementWindow:Toggle({
     Text = "SpeedBypass",
     Callback = function(state)
-        SpeedEnabled = state
-
+        SpeedVar = state
         if state then
             SpeedLoop = RunService.RenderStepped:Connect(function()
                 local char = LocalPlayer.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 local hum = char and char:FindFirstChildOfClass("Humanoid")
                 if hrp and hum and hum.MoveDirection.Magnitude > 0 then
-                    hrp.Velocity = hum.MoveDirection * SpeedValue + Vector3.new(0, hrp.Velocity.Y, 0)
+                    hrp.Velocity = hum.MoveDirection * SpeedVal + Vector3.new(0, hrp.Velocity.Y, 0)
                 end
             end)
         else
