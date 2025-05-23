@@ -11,19 +11,21 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 
-local ESPEnabled = false
-local Vibe = false
-local FPSBoostEnabled = false
-local watermarkGui = nil
-local watermarkEnabled = false
+local NameTagsVar = false
+local VibeVar = false
+local FPSBoostVar = false
+local WatermarkState = nil
+local WatermarkVar = false
 local nametagConnections = {}
 
-local function createNametag(player)
-    if player == player then return end
+local function NameTagCreate(player)
+    if player == LocalPlayer then return end
+
     if nametagConnections[player] then
         for _, conn in pairs(nametagConnections[player]) do
             conn:Disconnect()
         end
+        nametagConnections[player] = nil
     end
 
     local function onCharacterAdded(character)
@@ -45,7 +47,12 @@ local function createNametag(player)
         local textLabel = Instance.new("TextLabel", billboard)
         textLabel.Size = UDim2.new(1, 0, 1, 0)
         textLabel.BackgroundTransparency = 1
-        textLabel.TextColor3 = Color3.fromRGB(255, 105, 180)
+        task.spawn(function()
+        while textLabel and textLabel.Parent do
+            textLabel.TextColor3 = Library.DefaultColor
+                task.wait(0.03)
+            end
+        end)
         textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
         textLabel.TextStrokeTransparency = 0
         textLabel.TextScaled = true
@@ -55,7 +62,11 @@ local function createNametag(player)
 
         local updateConn
         updateConn = RunService.RenderStepped:Connect(function()
-            if not ESPEnabled or humanoid.Health <= 0 then
+            if not NameTagsVar then
+                textLabel.Text = ""
+                return
+            end
+            if humanoid.Health <= 0 then
                 textLabel.Text = ""
                 return
             end
@@ -63,9 +74,10 @@ local function createNametag(player)
             local health = math.floor(humanoid.Health)
             local maxHealth = math.floor(humanoid.MaxHealth)
             local name = player.Name
+
             local distance = 0
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                distance = math.floor((player.Character.HumanoidRootPart.Position - hrp.Position).Magnitude)
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - head.Position).Magnitude)
             end
 
             textLabel.Text = string.format("[%d/%d] %s [%dm]", health, maxHealth, name, distance)
@@ -97,22 +109,16 @@ local function clearNametags()
     end
 end
 
-local function toggleESP(state)
-    ESPEnabled = state
-    if state then
-        for _, p in pairs(Players:GetPlayers()) do
-            createNametag(p)
-        end
-    else
-        clearNametags()
-    end
-end
+Library:Notification({
+    Text = "Game Not Supported",
+    Duration = 20
+})
 
 VisualWindow:Toggle({
     Text = "Vibe",
     Callback = function(state)
-        Vibe = state
-        if Vibe then
+        VibeVar = state
+        if VibeVar then
             Lighting.TimeOfDay = "00:00:00"
             Lighting.Ambient = Color3.fromRGB(0, 85, 255)
             Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
@@ -125,13 +131,27 @@ VisualWindow:Toggle({
 
 VisualWindow:Toggle({
     Text = "Nametags",
-    Callback = toggleESP
+    Callback = function(state)
+
+        local function NameTagsFunc(state)
+            NameTagsVar = state
+            if state then
+                for _, player in pairs(Players:GetPlayers()) do
+                    NameTagCreate(player)
+                end
+            else
+                clearNametags()
+            end
+        end
+
+        NameTagsFunc(state)
+    end
 })
 
 VisualWindow:Toggle({
     Text = "FPSBoost",
     Callback = function(state)
-        FPSBoostEnabled = state
+        FPSBoostVar = state
         if state then
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("Texture") or obj:IsA("Decal") then
@@ -171,16 +191,16 @@ VisualWindow:Label({
 VisualWindow:Toggle({
     Text = "Watermark",
     Callback = function(state)
-        watermarkEnabled = state
+        WatermarkVar = state
         if state then
-            if not watermarkGui then
-                watermarkGui = Instance.new("ScreenGui")
-                watermarkGui.Name = "SmokerWatermark"
-                watermarkGui.ResetOnSpawn = false
-                watermarkGui.IgnoreGuiInset = true
-                watermarkGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
-                watermarkGui.DisplayOrder = 100
-                watermarkGui.Parent = player:WaitForChild("PlayerGui")
+            if not WatermarkState then
+                WatermarkState = Instance.new("ScreenGui")
+                WatermarkState.Name = "SmokerWatermark"
+                WatermarkState.ResetOnSpawn = false
+                WatermarkState.IgnoreGuiInset = true
+                WatermarkState.ZIndexBehavior = Enum.ZIndexBehavior.Global
+                WatermarkState.DisplayOrder = 100
+                WatermarkState.Parent = player:WaitForChild("PlayerGui")
 
                 local container = Instance.new("Frame")
                 container.Name = "WatermarkContainer"
@@ -190,7 +210,7 @@ VisualWindow:Toggle({
                 container.BackgroundTransparency = 0.25
                 container.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
                 container.BorderSizePixel = 0
-                container.Parent = watermarkGui
+                container.Parent = WatermarkState
 
                 local logo = Instance.new("ImageLabel")
                 logo.Name = "Logo"
@@ -214,11 +234,11 @@ VisualWindow:Toggle({
                 label.TextXAlignment = Enum.TextXAlignment.Left
                 label.Parent = container
             else
-                watermarkGui.Enabled = true
+                WatermarkState.Enabled = true
             end
         else
-            if watermarkGui then
-                watermarkGui.Enabled = false
+            if WatermarkState then
+                WatermarkState.Enabled = false
             end
         end
     end
