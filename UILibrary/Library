@@ -199,8 +199,10 @@ local function downloadFolder(path, localPath)
 end
 
 local function createFolderWithNotify(path)
-    ensureFolder(path)
-    notify("New Folder: " .. path)
+    if not isfolder(path) then
+        makefolder(path)
+        notify("New Folder: " .. path)
+    end
 end
 
 createFolderWithNotify(rootFolder)
