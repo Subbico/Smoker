@@ -11,16 +11,10 @@ local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 
-local NameTagsVar = false
-local VibeVar = false
-local FPSBoostVar = false
-local WatermarkState = nil
-local WatermarkVar = false
 local nametagConnections = {}
 
 local function NameTagCreate(player)
     if player == LocalPlayer then return end
-
     if nametagConnections[player] then
         for _, conn in pairs(nametagConnections[player]) do
             conn:Disconnect()
@@ -47,22 +41,23 @@ local function NameTagCreate(player)
         local textLabel = Instance.new("TextLabel", billboard)
         textLabel.Size = UDim2.new(1, 0, 1, 0)
         textLabel.BackgroundTransparency = 1
-        task.spawn(function()
-        while textLabel and textLabel.Parent do
-            textLabel.TextColor3 = Library.DefaultColor
-                task.wait(0.03)
-            end
-        end)
-        textLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        textLabel.TextStrokeColor3 = Color3.new()
         textLabel.TextStrokeTransparency = 0
         textLabel.TextScaled = true
         textLabel.Font = Enum.Font.SourceSansBold
         textLabel.Text = ""
+
         billboard.Parent = head
 
-        local updateConn
-        updateConn = RunService.RenderStepped:Connect(function()
-            if not NameTagsVar then
+        task.spawn(function()
+            while textLabel and textLabel.Parent do
+                textLabel.TextColor3 = Library.DefaultColor
+                task.wait(0.03)
+            end
+        end)
+
+        local updateConn = RunService.RenderStepped:Connect(function()
+            if not Library.Flags["Nametags"] then
                 textLabel.Text = ""
                 return
             end
@@ -98,9 +93,7 @@ end
 
 local function clearNametags()
     for player, conns in pairs(nametagConnections) do
-        for _, conn in pairs(conns) do
-            conn:Disconnect()
-        end
+        for _, conn in pairs(conns) do conn:Disconnect() end
         nametagConnections[player] = nil
         if player.Character and player.Character:FindFirstChild("Head") then
             local tag = player.Character.Head:FindFirstChild("CustomNametag")
@@ -109,49 +102,51 @@ local function clearNametags()
     end
 end
 
-Library:Notification({
-    Text = "Game Not Supported",
-    Duration = 20
+VisualWindow:Label({
+    Text = "Smoker Client",
+    Color = Library.DefaultColor
 })
 
 VisualWindow:Toggle({
     Text = "Vibe",
+    Flag = "Vibe",
+    Default = Library.Flags["Vibe"] or false,
     Callback = function(state)
-        VibeVar = state
-        if VibeVar then
+        Library.Flags["Vibe"] = state
+        Library:SaveFlags()
+        if state then
             Lighting.TimeOfDay = "00:00:00"
             Lighting.Ambient = Color3.fromRGB(0, 85, 255)
             Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
             Lighting.Technology = Enum.Technology.Future
-        else
-            
         end
     end
 })
 
 VisualWindow:Toggle({
     Text = "Nametags",
+    Flag = "Nametags",
+    Default = Library.Flags["Nametags"] or false,
     Callback = function(state)
-
-        local function NameTagsFunc(state)
-            NameTagsVar = state
-            if state then
-                for _, player in pairs(Players:GetPlayers()) do
-                    NameTagCreate(player)
-                end
-            else
-                clearNametags()
+        Library.Flags["Nametags"] = state
+        Library:SaveFlags()
+        if state then
+            for _, player in pairs(Players:GetPlayers()) do
+                NameTagCreate(player)
             end
+        else
+            clearNametags()
         end
-
-        NameTagsFunc(state)
     end
 })
 
 VisualWindow:Toggle({
     Text = "FPSBoost",
+    Flag = "FPSBoost",
+    Default = Library.Flags["FPSBoost"] or false,
     Callback = function(state)
-        FPSBoostVar = state
+        Library.Flags["FPSBoost"] = state
+        Library:SaveFlags()
         if state then
             for _, obj in ipairs(workspace:GetDescendants()) do
                 if obj:IsA("Texture") or obj:IsA("Decal") then
@@ -169,29 +164,21 @@ VisualWindow:Toggle({
                     part.Reflectance = 0
                 end
             end
-        else
-            
         end
     end
 })
 
-SettingsWindow:Keybind({
-   Text = "Toggle Library",
-   Default = Enum.KeyCode.RightShift,
-   Callback = function()
-       Library:Toggle()
-   end
-})
-
-VisualWindow:Label({
-   Text = "Smoker Client",
-   Color = Library.DefaultColor
-})
-
+local WatermarkState = nil
+local WatermarkVar = false
 VisualWindow:Toggle({
     Text = "Watermark",
+	Flag = "Watermark",
+    Default = Library.Flags["Watermark"] or false,
     Callback = function(state)
+	    Library.Flags["Watermark"] = state
+        Library:SaveFlags()
         WatermarkVar = state
+
         if state then
             if not WatermarkState then
                 WatermarkState = Instance.new("ScreenGui")
@@ -200,7 +187,7 @@ VisualWindow:Toggle({
                 WatermarkState.IgnoreGuiInset = true
                 WatermarkState.ZIndexBehavior = Enum.ZIndexBehavior.Global
                 WatermarkState.DisplayOrder = 100
-                WatermarkState.Parent = player:WaitForChild("PlayerGui")
+                WatermarkState.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
                 local container = Instance.new("Frame")
                 container.Name = "WatermarkContainer"
@@ -227,14 +214,28 @@ VisualWindow:Toggle({
                 label.Position = UDim2.new(0, 60, 0, 0)
                 label.BackgroundTransparency = 1
                 label.Text = "Smoker Client"
-                label.TextColor3 = Color3.fromRGB(255, 255, 255)
+                label.TextColor3 = Library.DefaultColor
                 label.TextStrokeTransparency = 0.75
                 label.Font = Enum.Font.SourceSansBold
                 label.TextScaled = true
                 label.TextXAlignment = Enum.TextXAlignment.Left
                 label.Parent = container
+
+                SyncColor(label)
+
+                local design = Instance.new("UICorner")
+                design.Parent = container
             else
                 WatermarkState.Enabled = true
+            end
+
+            local playerGui = game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
+            if playerGui then
+                for _, gui in ipairs(playerGui:GetChildren()) do
+                    if gui:IsA("ScreenGui") and gui.Name:lower():find("leader") then
+                        gui.DisplayOrder = 1
+                    end
+                end
             end
         else
             if WatermarkState then
@@ -246,11 +247,16 @@ VisualWindow:Toggle({
 
 MovementWindow:Slider({
     Text = "Speed",
-    Default = 16,
+    Flag = "Speed",
+    Default = Library.Flags["Speed"] or 16,
     Minimum = 16,
     Maximum = 100,
     Callback = function(value)
-        LocalPlayer.Character.Humanoid.WalkSpeed = value
+        Library.Flags["Speed"] = value
+        Library:SaveFlags()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+            LocalPlayer.Character.Humanoid.WalkSpeed = value
+        end
     end
 })
 
@@ -261,9 +267,9 @@ SettingsWindow:Dropdown({
         RGBEnabled = false
 
         if theme == "Dark" then
-            Library.DefaultColor = Color3.fromRGB(0, 0, 0)
+            Library.DefaultColor = Color3.new(0, 0, 0)
         elseif theme == "White" then
-            Library.DefaultColor = Color3.fromRGB(255, 255, 255)
+            Library.DefaultColor = Color3.new(1, 1, 1)
         elseif theme == "Aqua" then
             Library.DefaultColor = Color3.fromRGB(66, 245, 194)
         elseif theme == "Nova" then
@@ -280,7 +286,13 @@ SettingsWindow:Dropdown({
                 end
             end)
         end
+    end
+})
 
-        Library:Notification({Text = "Changed Theme to: " .. theme, Duration = 15})
+SettingsWindow:Keybind({
+    Text = "Toggle Library",
+    Default = Enum.KeyCode.RightShift,
+    Callback = function()
+        Library:Toggle()
     end
 })
