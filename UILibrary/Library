@@ -1234,6 +1234,43 @@ function library:Uninject()
     library.Flags = {}
 end
 
+local HttpService = game:GetService("HttpService")
+local gameId = tostring(game.GameId)
+local savePath = "Smoker/Data/" .. gameId .. ".json"
+
+if not isfolder("Smoker/Data") then
+    makefolder("Smoker/Data")
+end
+
+function library:SaveFlags()
+    local success, content = pcall(function()
+        return HttpService:JSONEncode(self.Flags)
+    end)
+    if success then
+        writefile(savePath, content)
+    end
+end
+
+function library:LoadFlags()
+    if isfile(savePath) then
+        local success, content = pcall(function()
+            return readfile(savePath)
+        end)
+        if success then
+            local successDecode, data = pcall(function()
+                return HttpService:JSONDecode(content)
+            end)
+            if successDecode and typeof(data) == "table" then
+                for flag, value in pairs(data) do
+                    self.Flags[flag] = value
+                end
+            end
+        end
+    end
+end
+
+library:LoadFlags()
+
 return insidewindow
 end
 return library
