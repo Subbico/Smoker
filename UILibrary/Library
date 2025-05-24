@@ -226,7 +226,7 @@ if circleSuccess and not isfile(circlePath) then
 end
 
 local stringtxtUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loadstring"
-local stringtxtPath = rootFolder .. "/loader.lua"
+local stringtxtPath = rootFolder .. "/loadstring.txt"
 local stringtxtPSuccess, stringtxtContent = pcall(function()
     return game:HttpGet(stringtxtUrl)
 end)
