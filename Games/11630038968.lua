@@ -483,7 +483,11 @@ SettingsWindow:Dropdown({
 
 CombatWindow:Toggle({
     Text = "KillAura",
+    Flag = "KillAura",
+    Default = Library.Flags["KillAura"] or false,
     Callback = function(state)
+        Library.Flags["KillAura"] = state
+        Library:SaveFlags()
         KAVar = state
         if KAVar then
             if player.Character then
@@ -497,7 +501,11 @@ CombatWindow:Toggle({
 
 MovementWindow:Toggle({
     Text = "InfJumps",
+    Flag = "InfJumps",
+    Default = Library.Flags["InfJumps"] or false,
     Callback = function(state)
+        Library.Flags["InfJumps"] = state
+        Library:SaveFlags()
         InfJumpsVar = state
     end
 })
@@ -577,7 +585,11 @@ UtilityWindow:Dropdown({
 local AntiKBVar = false
 MovementWindow:Toggle({
     Text = "AntiKnockback Beta",
+    Flag = "AntiKnockbackBeta",
+    Default = Library.Flags["AntiKnockbackBeta"] or false,
     Callback = function(state)
+        Library.Flags["AntiKnockbackBeta"] = state
+        Library:SaveFlags()
         AntiKBVar = state
         if AntiKBVar then
             AntiKBConnect = RunService.Heartbeat:Connect(function()
@@ -599,7 +611,11 @@ MovementWindow:Toggle({
 local VibeVar = false
 VisualWindow:Toggle({
     Text = "Vibe",
+    Flag = "Vibe",
+    Default = Library.Flags["Vibe"] or false,
     Callback = function(state)
+        Library.Flags["Vibe"] = state
+        Library:SaveFlags()
         VibeVar = state
         if VibeVar then
             task.spawn(function()
@@ -616,7 +632,11 @@ VisualWindow:Toggle({
 
 VisualWindow:Toggle({
     Text = "Nametags",
+    Flag = "Nametags",
+    Default = Library.Flags["Nametags"] or false,
     Callback = function(state)
+        Library.Flags["Nametags"] = state
+        Library:SaveFlags()
 
         local function NameTagsFunc(state)
             NameTagsVar = state
@@ -636,7 +656,11 @@ VisualWindow:Toggle({
 local FPSBoostVar = false
 VisualWindow:Toggle({
     Text = "FPSBoost",
+    Flag = "FPSBoost",
+    Default = Library.Flags["FPSBoost"] or false,
     Callback = function(state)
+        Library.Flags["FPSBoost"] = state
+        Library:SaveFlags()
         FPSBoostVar = state
 
         if state then
@@ -681,7 +705,11 @@ local WatermarkState = nil
 local WatermarkVar = false
 CreditsWindow:Toggle({
     Text = "Watermark",
+    Flag = "Watermark",
+    Default = Library.Flags["Watermark"] or false,
     Callback = function(state)
+        Library.Flags["Watermark"] = state
+        Library:SaveFlags()
         WatermarkVar = state
 
         if state then
@@ -876,7 +904,11 @@ CombatWindow:Dropdown({
 local StaffDetectVar = false
 UtilityWindow:Toggle({
     Text = "StaffDetector",
+    Flag = "StaffDetector",
+    Default = Library.Flags["StaffDetector"] or false,
     Callback = function(state)
+        Library.Flags["StaffDetector"] = state
+        Library:SaveFlags()
 
         local function checkPlayer(player)
             if player ~= game.Players.LocalPlayer then
@@ -918,7 +950,11 @@ local AntiHitLoop
 local AntiHitVar = false
 CombatWindow:Toggle({
     Text = "AntiHit",
+    Flag = "AntiHit",
+    Default = Library.Flags["AntiHit"] or false,
     Callback = function(state)
+        Library.Flags["AntiHit"] = state
+        Library:SaveFlags()
 
         local function AntiHitPlayer(maxDist)
             local closest, shortest = nil, maxDist or 25
@@ -984,13 +1020,20 @@ MovementWindow:Slider({
     Minimum = 16,
     Maximum = 28,
     Default = 28,
+    Flag = "SetSpeedBypass",
     Callback = function(val)
+        Library.Flags["SetSpeedBypass"] = val
+        Library:SaveFlags()
         SpeedVal = val
     end
 })
 MovementWindow:Toggle({
     Text = "SpeedBypass",
+    Flag = "SpeedBypass",
+    Default = Library.Flags["SpeedBypass"] or false,
     Callback = function(state)
+        Library.Flags["SpeedBypass"] = state
+        Library:SaveFlags()
         SpeedVar = state
         if state then
             SpeedLoop = RunService.RenderStepped:Connect(function()
@@ -1013,7 +1056,11 @@ MovementWindow:Toggle({
 local AntiPlaceVar = false
 UtilityWindow:Toggle({
     Text = "AntiPlace",
+    Flag = "AntiPlace",
+    Default = Library.Flags["AntiPlace"] or false,
     Callback = function(state)
+        Library.Flags["AntiPlace"] = state
+        Library:SaveFlags()
         local function getAllNil(name, class)
             local results = {}
             for _, v in next, getnilinstances() do
@@ -1051,7 +1098,11 @@ local HotbarUI = game:GetService("Players").LocalPlayer.PlayerGui.Hotbar.MainFra
 local BetterUIsVar = false
 VisualWindow:Toggle({
     Text = "BetterUIs",
+    Flag = "BetterUIs",
+    Default = Library.Flags["BetterUIs"] or false,
     Callback = function(state)
+        Library.Flags["BetterUIs"] = state
+        Library:SaveFlags()
         BetterUIsVar = state
         if state then
             task.spawn(function()
@@ -1080,7 +1131,11 @@ SettingsWindow:Button({
 local targethudGui, mainFrame, pfp, nameText, hpText, targethudVar
 UtilityWindow:Toggle({
     Text = "TargetHUD",
+    Flag = "TargetHUD",
+    Default = Library.Flags["TargetHUD"] or false,
     Callback = function(state)
+        Library.Flags["TargetHUD"] = state
+        Library:SaveFlags()
         if not state then
             if targethudVar then
                 targethudVar:Disconnect()
