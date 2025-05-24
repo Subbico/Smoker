@@ -18,6 +18,8 @@ local UserInputService = game:GetService("UserInputService")
 local TextChatService = game:GetService("TextChatService")
 local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
+local CoreGui = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
 
 local player = Players.LocalPlayer
 local LocalPlayer = Players.LocalPlayer
@@ -25,11 +27,15 @@ local camera = Workspace.CurrentCamera
 local KillFeed = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Notifications"):WaitForChild("Notifications")
 
 --States
-local NameTagsVar, InfJumpsVar, AntiKBVar = false, false, false
-local RGBVar, KAVar, LongJumpVar = false, false, false
+local InfJumpsVar, KAVar, AutoGGVar, AutoLVar, NormalToxicVar, TargetHeadHudVar, TargetBackHudVar, TargetSafeHudVar = false, false, false, false, false, false, false, false
 local TargetVar, AntiKBConnect, RunKAConnect, CharAddedConnect, CharDiedConnect
 local PreCameraCFrame, CurrentTarget, LastSwing = nil, nil, 0
-local FPSBoostVar, VibeVar, HumanoidRootPart, character = false, false, hrp, Character
+local HumanoidRootPart, character = hrp, Character, hudGui, listFrame, contentFrame, hudconnect
+local activeLabels = {}
+local LibrarySyncColors = {}
+local LibrarySyncBackgrounds = {}
+
+local HUDStyle = "Off"
 
 local character = player.Character or player.CharacterAdded:Wait()
 local hrp = character:WaitForChild("HumanoidRootPart")
@@ -42,12 +48,19 @@ local nametagConnections = {}
 local connections = {}
 local Messages = {
     "L %s",
-    "smxke.on.top",
-    "smxke.own.this",
-    "%s crying because no smxke private"
+    "gg %s",
+    "%s cant fight %s"
 }
 
 --Functions
+function SyncColor(obj)
+	if obj:IsA("TextLabel") or obj:IsA("TextButton") or obj:IsA("TextBox") then
+		table.insert(LibrarySyncColors, obj)
+	elseif obj:IsA("Frame") or obj:IsA("ImageLabel") or obj:IsA("ImageButton") then
+		table.insert(LibrarySyncBackgrounds, obj)
+	end
+end
+
 UserInputService.JumpRequest:Connect(function()
     if InfJumpsVar then
         local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
@@ -89,6 +102,7 @@ local function ClosestPlayer(maxDistance)
     return closest
 end
 
+local NameTagsVar = false
 local function NameTagCreate(player)
     if player == LocalPlayer then return end
 
@@ -369,7 +383,11 @@ local function KillAuraFunc()
 end
 
 local function onCharacterAdded(character)
-    wait(1)
+    character:WaitForChild("HumanoidRootPart", 5)
+    character:WaitForChild("Humanoid", 5)
+
+    task.wait(0.5)
+
     if KAVar then
         KillAuraFunc()
     else
@@ -431,15 +449,16 @@ local function PlayerLowHP(range)
 end
 
 --Features
+local RGBVar = false
 SettingsWindow:Dropdown({
     Text = "Theme",
-    List = {"Dark", "White", "Aqua", "Nova", "RGB"},
+    List = {"Dark", "Light", "Aqua", "Nova", "RGB"},
     Callback = function(theme)
         RGBVar = false
 
         if theme == "Dark" then
             Library.DefaultColor = Color3.fromRGB(0, 0, 0)
-        elseif theme == "White" then
+        elseif theme == "Light" then
             Library.DefaultColor = Color3.fromRGB(255, 255, 255)
         elseif theme == "Aqua" then
             Library.DefaultColor = Color3.fromRGB(66, 245, 194)
@@ -494,8 +513,21 @@ UtilityWindow:Dropdown({
             KillFeedConnect:Disconnect()
             KillFeedConnect = nil
         end
+        AutoGGVar = false
+        AutoLVar = false
+        NormalToxicVar = false
 
-        if selected == "Off" then return end
+        if selected == "Off" then
+            return
+        end
+
+        if selected == "AutoGG" then
+            AutoGGVar = true
+        elseif selected == "AutoL" then
+            AutoLVar = true
+        elseif selected == "AutoToxic" then
+            NormalToxicVar = true
+        end
 
         KillFeedConnect = KillFeed.ChildAdded:Connect(function(child)
             if child:IsA("TextLabel") then
@@ -526,12 +558,12 @@ UtilityWindow:Dropdown({
 
                         local message = ""
                         if selected == "AutoGG" then
-                            message = "gg " .. deadPlayer.DisplayName .. " | imusingsmxkclient"
+                            message = "gg " .. deadPlayer.DisplayName .. " | <S<M<O<K<E<R<> Client on top"
                         elseif selected == "AutoL" then
-                            message = "L " .. deadPlayer.DisplayName .. " | imusingsmxkclient"
+                            message = "L " .. deadPlayer.DisplayName .. " | <S<M<O<K<E<R<> Client on top"
                         elseif selected == "AutoToxic" then
                             local fmt = Messages[math.random(1, #Messages)]
-                            message = string.format(fmt, deadPlayer.DisplayName, LocalPlrDisplay) .. " | imusingsmxkclient"
+                            message = string.format(fmt, deadPlayer.DisplayName, LocalPlrDisplay) .. " | <S<M<O<K<E<R<> Client on top"
                         end
 
                         channel:SendAsync(message)
@@ -542,6 +574,7 @@ UtilityWindow:Dropdown({
     end
 })
 
+local AntiKBVar = false
 MovementWindow:Toggle({
     Text = "AntiKnockback Beta",
     Callback = function(state)
@@ -563,17 +596,20 @@ MovementWindow:Toggle({
     end
 })
 
+local VibeVar = false
 VisualWindow:Toggle({
     Text = "Vibe",
     Callback = function(state)
         VibeVar = state
-        if VibeVar == true then
-            Lighting.TimeOfDay = "00:00:00"
-            Lighting.Ambient = Color3.fromRGB(0, 85, 255)
-            Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
-            Lighting.Technology = Enum.Technology.Future
-        else
-
+        if VibeVar then
+            task.spawn(function()
+                while VibeVar and task.wait() do
+                    Lighting.TimeOfDay = "00:00:00"
+                    Lighting.Ambient = Library.DefaultColor
+                    Lighting.OutdoorAmbient = Library.DefaultColor
+                    Lighting.Technology = Enum.Technology.Future
+                end
+            end)
         end
     end
 })
@@ -597,6 +633,7 @@ VisualWindow:Toggle({
     end
 })
 
+local FPSBoostVar = false
 VisualWindow:Toggle({
     Text = "FPSBoost",
     Callback = function(state)
@@ -689,6 +726,8 @@ CreditsWindow:Toggle({
                 label.TextXAlignment = Enum.TextXAlignment.Left
                 label.Parent = container
 
+                SyncColor(label)
+
                 local design = Instance.new("UICorner")
                 design.Parent = container
             else
@@ -707,33 +746,6 @@ CreditsWindow:Toggle({
             if WatermarkState then
                 WatermarkState.Enabled = false
             end
-        end
-    end
-})
-
-MovementWindow:Keybind({
-    Text = "LongJump",
-    Default = Enum.KeyCode.L,
-    Callback = function()
-
-        local function LongJumpFunc()
-            local character = player.Character
-            if not character then return end
-
-            local humanoid = character:FindFirstChildOfClass("Humanoid")
-            local rootPart = character:FindFirstChild("HumanoidRootPart")
-            if not humanoid or not rootPart then return end
-
-            humanoid:TakeDamage(10)
-
-            local lookVector = camera.CFrame.LookVector
-            local jumpVector = Vector3.new(lookVector.X, 0, lookVector.Z).Unit * 10
-            rootPart.CFrame = rootPart.CFrame + jumpVector
-        end
-
-        LongJumpVar = not LongJumpVar
-        if LongJumpVar then
-            LongJumpFunc()
         end
     end
 })
@@ -793,29 +805,32 @@ local modes = {
         return RunService.Heartbeat:Connect(function(deltaTime)
             local HumanoidRootPart = getHumanoidRootPart()
             if not HumanoidRootPart then return end
-
             local target = CurrentTarget
             if not target then
-                target = PlayerLowHP(20)
-                if target then
-                    CurrentTarget = target
+                local potentialTarget = PlayerLowHP(20)
+                if potentialTarget and potentialTarget.Character and potentialTarget.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetHRP = potentialTarget.Character.HumanoidRootPart
+                    local direction = (targetHRP.Position - HumanoidRootPart.Position)
+
+                    local rayParams = RaycastParams.new()
+                    rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    rayParams.IgnoreWater = true
+
+                    local rayResult = workspace:Raycast(HumanoidRootPart.Position, direction, rayParams)
+                    if rayResult and potentialTarget.Character:IsAncestorOf(rayResult.Instance) then
+                        target = potentialTarget
+                        CurrentTarget = target
+                    end
                 end
             end
+
             if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and target.Character:FindFirstChild("Humanoid") then
                 local humanoid = target.Character.Humanoid
                 if humanoid.Health <= 0 then return end
 
                 local targetHRP = target.Character.HumanoidRootPart
                 if isInCityArea(targetHRP.Position) then return end
-
-                local direction = (targetHRP.Position - HumanoidRootPart.Position)
-                local rayParams = RaycastParams.new()
-                rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
-                rayParams.FilterType = Enum.RaycastFilterType.Blacklist
-                rayParams.IgnoreWater = true
-
-                local rayResult = workspace:Raycast(HumanoidRootPart.Position, direction, rayParams)
-                if rayResult and not target.Character:IsAncestorOf(rayResult.Instance) then return end
 
                 rotationAngle = (rotationAngle + rotationSpeed * deltaTime) % (math.pi * 2)
                 local offset = Vector3.new(math.cos(rotationAngle) * 5, 4, math.sin(rotationAngle) * 5)
@@ -840,8 +855,20 @@ CombatWindow:Dropdown({
             TargetVar = nil
         end
 
+        TargetHeadHudVar = false
+        TargetBackHudVar = false
+        TargetSafeHudVar = false
+
         if selected ~= "None" and modes[selected] then
             TargetVar = modes[selected]()
+
+            if selected == "TargetHead" then
+                TargetHeadHudVar = true
+            elseif selected == "TargetBack" then
+                TargetBackHudVar = true
+            elseif selected == "TargetSafe" then
+                TargetSafeHudVar = true
+            end
         end
     end
 })
@@ -982,3 +1009,475 @@ MovementWindow:Toggle({
         end
     end
 })
+
+local AntiPlaceVar = false
+UtilityWindow:Toggle({
+    Text = "AntiPlace",
+    Callback = function(state)
+        local function getAllNil(name, class)
+            local results = {}
+            for _, v in next, getnilinstances() do
+                if v.ClassName == class and v.Name == name then
+                    table.insert(results, v)
+                end
+            end
+            return results
+        end
+
+        AntiPlaceVar = state
+        if state then
+            task.spawn(function()
+                while AntiPlaceVar and task.wait() do
+                    local map = workspace:FindFirstChild("Map")
+                    if map then
+                        for _, obj in ipairs(map:GetChildren()) do
+                            if obj:IsA("Part") and obj.Name == "Block" then
+                                obj:Destroy()
+                            end
+                        end
+                    end
+
+                    for _, nilObj in ipairs(getAllNil("Block", "Part")) do
+                        nilObj:Destroy()
+                    end
+                end
+            end)
+        end
+    end
+})
+
+local SidebarUI = game:GetService("Players").LocalPlayer.PlayerGui.MainGui["BRIDGE DUEL"]
+local HotbarUI = game:GetService("Players").LocalPlayer.PlayerGui.Hotbar.MainFrame.Background
+local BetterUIsVar = false
+VisualWindow:Toggle({
+    Text = "BetterUIs",
+    Callback = function(state)
+        BetterUIsVar = state
+        if state then
+            task.spawn(function()
+                while BetterUIsVar and task.wait() do
+                    SidebarUI.Position = UDim2.new(0.899999976, 170, 0.5, 0)
+                    SidebarUI.BackgroundColor3 = Color3.fromRGB(23, 39, 221)
+                    SidebarUI.UIStroke.Thickness = 5
+                    HotbarUI.BackgroundColor3 = Color3.fromRGB(23, 39, 221)
+                    HotbarUI.UIStroke.Thickness = 5
+
+                    SidebarUI.UIStroke.Color = Library.DefaultColor
+                    HotbarUI.UIStroke.Color = Library.DefaultColor
+                end
+            end)
+        end
+    end
+})
+
+SettingsWindow:Button({
+    Text = "UnInject",
+    Callback = function()
+        Library:Uninject()
+    end
+})
+
+local targethudGui, mainFrame, pfp, nameText, hpText, targethudVar
+UtilityWindow:Toggle({
+    Text = "TargetHUD",
+    Callback = function(state)
+        if not state then
+            if targethudVar then
+                targethudVar:Disconnect()
+                targethudVar = nil
+            end
+            if targethudGui then
+                targethudGui:Destroy()
+                targethudGui = nil
+            end
+            return
+        end
+
+        targethudGui = Instance.new("ScreenGui")
+        targethudGui.Name = "TargetHUD"
+        targethudGui.ResetOnSpawn = false
+        targethudGui.IgnoreGuiInset = true
+        targethudGui.Parent = game.CoreGui
+
+        mainFrame = Instance.new("Frame", targethudGui)
+        mainFrame.Size = UDim2.new(0, 250, 0, 70)
+        mainFrame.Position = UDim2.new(0.5, -125, 0.7, 0)
+        mainFrame.BackgroundColor3 = Library.DefaultColor
+        mainFrame.BackgroundTransparency = 0.25
+        mainFrame.BorderSizePixel = 0
+        mainFrame.Active = true
+        mainFrame.Draggable = true
+
+        SyncColor(mainFrame)
+
+        Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+
+        local stroke = Instance.new("UIStroke", mainFrame)
+        stroke.Color = Color3.fromRGB(0, 0, 0)
+        stroke.Thickness = 5
+        stroke.Transparency = 0.2
+
+        pfp = Instance.new("ImageLabel", mainFrame)
+        pfp.Size = UDim2.new(0, 60, 0, 60)
+        pfp.Position = UDim2.new(0, 5, 0, 5)
+        pfp.BackgroundTransparency = 1
+        pfp.Image = ""
+        Instance.new("UICorner", pfp).CornerRadius = UDim.new(1, 0)
+
+        nameText = Instance.new("TextLabel", mainFrame)
+        nameText.Size = UDim2.new(0, 170, 0, 30)
+        nameText.Position = UDim2.new(0, 75, 0, 5)
+        nameText.BackgroundTransparency = 1
+        nameText.TextScaled = true
+        nameText.Font = Enum.Font.GothamSemibold
+        nameText.TextColor3 = Color3.fromRGB(200, 230, 255)
+        nameText.Text = ""
+
+        hpText = Instance.new("TextLabel", mainFrame)
+        hpText.Size = UDim2.new(0, 170, 0, 25)
+        hpText.Position = UDim2.new(0, 75, 0, 35)
+        hpText.BackgroundTransparency = 1
+        hpText.TextScaled = true
+        hpText.Font = Enum.Font.Gotham
+        hpText.TextColor3 = Color3.fromRGB(100, 200, 255)
+        hpText.Text = ""
+
+        targethudVar = RunService.RenderStepped:Connect(function()
+            local target = ClosestPlayer(20)
+            if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+                local hp = target.Character.Humanoid.Health
+                if hp > 0 then
+                    local name = target.DisplayName ~= "" and target.DisplayName or target.Name
+                    nameText.Text = name
+                    hpText.Text = "Health: " .. math.floor(hp)
+                    pfp.Image = Players:GetUserThumbnailAsync(target.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+                    mainFrame.Visible = true
+                else
+                    mainFrame.Visible = false
+                end
+            else
+                mainFrame.Visible = false
+            end
+        end)
+    end
+})
+
+local JumpFlyVar = false
+MovementWindow:Keybind({
+    Text = "JumpFly",
+    Default = Enum.KeyCode.T,
+    Callback = function()
+        local keys = {
+            W = false, A = false, S = false, D = false,
+            Space = false, LeftShift = false
+        }
+
+        local function setKey(key, state)
+            if key == Enum.KeyCode.W then keys.W = state
+            elseif key == Enum.KeyCode.A then keys.A = state
+            elseif key == Enum.KeyCode.S then keys.S = state
+            elseif key == Enum.KeyCode.D then keys.D = state
+            elseif key == Enum.KeyCode.Space then keys.Space = state
+            elseif key == Enum.KeyCode.LeftShift then keys.LeftShift = state
+            end
+        end
+
+        local function isMoving()
+            return keys.W or keys.A or keys.S or keys.D or keys.Space or keys.LeftShift
+        end
+
+        JumpFlyVar = not JumpFlyVar
+
+        if JumpFlyVar then
+            local inputStart = UserInputService.InputBegan:Connect(function(input, gpe)
+                if not gpe then setKey(input.KeyCode, true) end
+            end)
+
+            local inputEnd = UserInputService.InputEnded:Connect(function(input, gpe)
+                if not gpe then setKey(input.KeyCode, false) end
+            end)
+
+            coroutine.wrap(function()
+                local char = player.Character or player.CharacterAdded:Wait()
+                local hum = char:WaitForChild("Humanoid")
+                local root = char:WaitForChild("HumanoidRootPart")
+
+                local gyro = Instance.new("BodyGyro")
+                gyro.MaxTorque = Vector3.new(400000, 400000, 400000)
+                gyro.P = 3000
+                gyro.CFrame = root.CFrame
+                gyro.Parent = root
+
+                local vel = Instance.new("BodyVelocity")
+                vel.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+                vel.P = 2000
+                vel.Velocity = Vector3.zero
+                vel.Parent = root
+
+                hum.PlatformStand = false
+
+                while JumpFlyVar do
+                    local dir = Vector3.zero
+                    if keys.W then dir += Vector3.new(0, 0, -1) end
+                    if keys.S then dir += Vector3.new(0, 0, 1) end
+                    if keys.A then dir += Vector3.new(-1, 0, 0) end
+                    if keys.D then dir += Vector3.new(1, 0, 0) end
+
+                    if dir.Magnitude > 0 then
+                        local cam = workspace.CurrentCamera
+                        dir = cam.CFrame:VectorToWorldSpace(dir.Unit)
+                    end
+
+                    local y = 0
+                    if keys.Space then y = 1 end
+                    if keys.LeftShift then y = -1 end
+
+                    if isMoving() then
+                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+                        vel.Velocity = dir * 30 + Vector3.new(0, y * 50, 0)
+                    else
+                        vel.Velocity = Vector3.zero
+                    end
+
+                    gyro.CFrame = workspace.CurrentCamera.CFrame
+                    wait(0.4)
+                end
+
+                gyro:Destroy()
+                vel:Destroy()
+                hum.PlatformStand = false
+                inputStart:Disconnect()
+                inputEnd:Disconnect()
+            end)()
+        end
+    end
+})
+
+local ForHudVars = {
+	["NameTags"] = function() return NameTagsVar end,
+	["InfJumps"] = function() return InfJumpsVar end,
+	["AntiKB"] = function() return AntiKBVar end,
+	["KillAura"] = function() return KAVar end,
+	["FPSBoost"] = function() return FPSBoostVar end,
+	["Vibe"] = function() return VibeVar end,
+	["BetterUIs"] = function() return BetterUIsVar end,
+	["AntiPlace"] = function() return AntiPlaceVar end,
+	["AutoGG"] = function() return AutoGGVar end,
+	["AutoL"] = function() return AutoLVar end,
+	["AutoToxic"] = function() return NormalToxicVar end,
+	["TargetHead"] = function() return TargetHeadHudVar end,
+	["TargetBack"] = function() return TargetBackHudVar end,
+	["TargetSafe"] = function() return TargetSafeHudVar end,
+	["Watermark"] = function() return WatermarkVar end,
+	["AntiHit"] = function() return AntiHitVar end,
+	["StaffDetector"] = function() return StaffDetectVar end,
+	["SpeedBypass"] = function() return SpeedVar end,
+	["AntiCheatBypass"] = function() return JumpFlyVar end,
+}
+
+local function DestroyHUD()
+	if hudconnect then
+		hudconnect:Disconnect()
+		hudconnect = nil
+	end
+	if hudGui then
+		hudGui:Destroy()
+		hudGui = nil
+		listFrame = nil
+		contentFrame = nil
+		activeLabels = {}
+	end
+end
+
+local function CreateHudStatus()
+	DestroyHUD()
+	if HUDStyle == "Off" then return end
+
+	hudGui = Instance.new("ScreenGui")
+	hudGui.Name = "HUDStatus"
+	hudGui.Parent = CoreGui
+	hudGui.ResetOnSpawn = false
+
+	listFrame = Instance.new("Frame", hudGui)
+	listFrame.Size = UDim2.new(0, 200, 0, 300)
+	listFrame.Position = HUDStyle == "Drop" and UDim2.new(1, -210, 0, 10) or UDim2.new(1, -210, 0.3, 0)
+	listFrame.BackgroundTransparency = (HUDStyle == "Drop") and 1 or 0.2
+	listFrame.BackgroundColor3 = (HUDStyle == "Drop") and Color3.new(0, 0, 0) or Color3.fromRGB(20, 20, 30)
+	listFrame.BorderSizePixel = 0
+	Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0, 8)
+
+	if HUDStyle == "Box" then
+		local stroke = Instance.new("UIStroke", listFrame)
+		stroke.Color = Library.DefaultColor
+		stroke.Thickness = 5
+		stroke.Transparency = 0
+
+		local title = Instance.new("TextLabel", listFrame)
+		title.Name = "BoxTitle"
+		title.Size = UDim2.new(1, -10, 0, 30)
+		title.Position = UDim2.new(0, 5, 0, 5)
+		title.BackgroundTransparency = 1
+		title.TextColor3 = Library.DefaultColor
+		title.Font = Enum.Font.GothamBold
+		title.TextScaled = true
+		title.Text = "Smoker Client"
+
+	elseif HUDStyle == "Drop" then
+		local header = Instance.new("TextLabel", listFrame)
+		header.Name = "DropHeader"
+		header.Size = UDim2.new(1, -20, 0, 28)
+		header.Position = UDim2.new(0, 10, 0, 0)
+		header.BackgroundTransparency = 1
+		header.RichText = true
+		header.TextScaled = true
+		header.Font = Enum.Font.GothamBold
+		header.TextColor3 = Library.DefaultColor
+		header.TextXAlignment = Enum.TextXAlignment.Center
+		header.TextYAlignment = Enum.TextYAlignment.Center
+		header.Text = "<font size='26'>SMOKER</font> <font size='18'>V3</font>"
+	end
+
+	contentFrame = Instance.new("ScrollingFrame", listFrame)
+	contentFrame.Size = UDim2.new(1, -10, 1, (HUDStyle == "Drop") and -10 or -40)
+	contentFrame.Position = UDim2.new(0, 5, 0, (HUDStyle == "Drop") and 30 or 35)
+	contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+	contentFrame.BackgroundTransparency = 1
+	contentFrame.ScrollBarThickness = 4
+	contentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	contentFrame.ClipsDescendants = true
+
+	local layout = Instance.new("UIListLayout", contentFrame)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 4)
+end
+
+local function UpdStatusHud()
+	if not contentFrame then return end
+
+	for name, isEnabled in pairs(ForHudVars) do
+		local enabled = isEnabled()
+
+		if enabled and not activeLabels[name] then
+			local label = Instance.new("TextLabel")
+			label.Name = name
+			label.Size = UDim2.new(1, 0, 0, 24)
+			label.Position = UDim2.new(0, -40, 0, 0)
+			label.BackgroundTransparency = 1
+			label.TextTransparency = 1
+			label.Text = name
+			label.Font = Enum.Font.GothamSemibold
+			label.TextScaled = true
+			label.LayoutOrder = #contentFrame:GetChildren()
+			label.Parent = contentFrame
+
+			if HUDStyle == "Box" then
+				label.TextColor3 = Library.DefaultColor
+			elseif HUDStyle == "Drop" then
+				label.TextColor3 = Library.DefaultColor
+				local line = Instance.new("Frame", label)
+				line.Name = "ColorLine"
+				line.Size = UDim2.new(0, 4, 1, 0)
+				line.Position = UDim2.new(1, -4, 0, 0)
+				line.AnchorPoint = Vector2.new(1, 0)
+				line.BackgroundColor3 = Library.DefaultColor
+				line.BorderSizePixel = 0
+			end
+
+			local showTween = TweenService:Create(label, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				Position = UDim2.new(0, 0, 0, 0),
+				TextTransparency = 0
+			})
+			showTween:Play()
+
+			activeLabels[name] = label
+
+		elseif not enabled and activeLabels[name] then
+			local label = activeLabels[name]
+			activeLabels[name] = nil
+
+			local hideTween = TweenService:Create(label, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+				Position = label.Position - UDim2.new(0, 40, 0, 0),
+				TextTransparency = 1
+			})
+
+			hideTween:Play()
+			hideTween.Completed:Connect(function()
+				if label then
+					label:Destroy()
+				end
+			end)
+		end
+	end
+end
+
+UtilityWindow:Dropdown({
+	Text = "HUD Style",
+	List = {"Off", "Box", "Drop"},
+    Callback = function(selected)
+	HUDStyle = selected
+        if SidebarUI and SidebarUI:IsA("Frame") then
+            SidebarUI.Visible = (HUDStyle ~= "Box")
+        end
+
+        if HUDStyle ~= "Off" then
+            CreateHudStatus()
+            UpdStatusHud()
+            if hudconnect then hudconnect:Disconnect() end
+            hudconnect = RunService.Heartbeat:Connect(UpdStatusHud)
+        else
+            DestroyHUD()
+        end
+    end
+})
+
+task.spawn(function()
+	while true and task.wait(.1) do
+		for _, label in pairs(activeLabels) do
+			if label and label:IsDescendantOf(game) then
+				label.TextColor3 = Library.DefaultColor
+
+				local line = label:FindFirstChild("ColorLine")
+				if line then
+					line.BackgroundColor3 = Library.DefaultColor
+				end
+			end
+		end
+
+		if listFrame and HUDStyle == "Box" then
+			local stroke = listFrame:FindFirstChildOfClass("UIStroke")
+			if stroke then
+				stroke.Color = Library.DefaultColor
+			end
+
+			local title = listFrame:FindFirstChild("BoxTitle")
+			if title then
+				title.TextColor3 = Library.DefaultColor
+			end
+		end
+
+		if listFrame and HUDStyle == "Drop" then
+			local header = listFrame:FindFirstChild("DropHeader")
+			if header then
+				header.TextColor3 = Library.DefaultColor
+			end
+		end
+
+		for i = #LibrarySyncColors, 1, -1 do
+			local lbl = LibrarySyncColors[i]
+			if lbl and lbl:IsDescendantOf(game) then
+				lbl.TextColor3 = Library.DefaultColor
+			else
+				table.remove(LibrarySyncColors, i)
+			end
+		end
+
+		for i = #LibrarySyncBackgrounds, 1, -1 do
+			local obj = LibrarySyncBackgrounds[i]
+			if obj and obj:IsDescendantOf(game) then
+				obj.BackgroundColor3 = Library.DefaultColor
+			else
+				table.remove(LibrarySyncBackgrounds, i)
+			end
+		end
+	end
+end)
