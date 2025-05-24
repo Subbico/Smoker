@@ -199,9 +199,11 @@ end
 ensureFolder(rootFolder)
 ensureFolder(rootFolder .. "/Games")
 ensureFolder(rootFolder .. "/Assets")
+ensureFolder(rootFolder .. "/Data")
 
 downloadFolder("Games", rootFolder .. "/Games")
 downloadFolder("Assets", rootFolder .. "/Assets")
+downloadFolder("Data", rootFolder .. "/Data")
 
 local loaderUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loader.lua"
 local loaderPath = rootFolder .. "/loader.lua"
@@ -221,6 +223,16 @@ end)
 if circleSuccess and not isfile(circlePath) then
     writefile(circlePath, circleContent)
     notify("Circle.png")
+end
+
+local stringtxtUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loadstring"
+local stringtxtPath = rootFolder .. "/loader.lua"
+local stringtxtPSuccess, stringtxtContent = pcall(function()
+    return game:HttpGet(stringtxtUrl)
+end)
+if stringtxtPSuccess and not isfile(stringtxtPath) then
+    writefile(stringtxtPath, stringtxtContent)
+    notify("loadstring.txt")
 end
 
 function library:Window(Info)
