@@ -158,12 +158,14 @@ local HttpService = game:GetService("HttpService")
 local rootFolder = "Smoker"
 local repoApi = "https://api.github.com/repos/7Smoker/Smoker/contents/"
 
-local function notify(filename)
-    library:Notification({Text = "Downloaded " .. filename, Duration = 4})
+local function notify(message)
+    library:Notification({Text = message, Duration = 4})
 end
 
 local function ensureFolder(path)
-    if not isfolder(path) then makefolder(path) end
+    if not isfolder(path) then
+        makefolder(path)
+    end
 end
 
 local function downloadFolder(path, localPath)
@@ -185,7 +187,7 @@ local function downloadFolder(path, localPath)
                     table.remove(folders)
                     ensureFolder(table.concat(folders, "/"))
                     writefile(fullPath, content)
-                    notify(item.name)
+                    notify("Downloaded: " .. item.name)
                 end
             end
         elseif item.type == "dir" then
@@ -196,44 +198,35 @@ local function downloadFolder(path, localPath)
     end
 end
 
-ensureFolder(rootFolder)
-ensureFolder(rootFolder .. "/Games")
-ensureFolder(rootFolder .. "/Assets")
-ensureFolder(rootFolder .. "/Data")
+local function createFolderWithNotify(path)
+    ensureFolder(path)
+    notify("New Folder: " .. path)
+end
+
+createFolderWithNotify(rootFolder)
+createFolderWithNotify(rootFolder .. "/Games")
+createFolderWithNotify(rootFolder .. "/Assets")
+createFolderWithNotify(rootFolder .. "/Data")
+createFolderWithNotify(rootFolder .. "/UILibrary")
 
 downloadFolder("Games", rootFolder .. "/Games")
 downloadFolder("Assets", rootFolder .. "/Assets")
 downloadFolder("Data", rootFolder .. "/Data")
+downloadFolder("UILibrary", rootFolder .. "/UILibrary")
 
-local loaderUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loader.lua"
-local loaderPath = rootFolder .. "/loader.lua"
-local loaderSuccess, loaderContent = pcall(function()
-    return game:HttpGet(loaderUrl)
-end)
-if loaderSuccess and not isfile(loaderPath) then
-    writefile(loaderPath, loaderContent)
-    notify("loader.lua")
+local function downloadFile(url, path, name)
+    local success, content = pcall(function()
+        return game:HttpGet(url)
+    end)
+    if success and not isfile(path) then
+        writefile(path, content)
+        notify("Downloaded: " .. name)
+    end
 end
 
-local circleUrl = "https://raw.githubusercontent.com/Rain-Design/Libraries/main/Icon/Circle.png"
-local circlePath = rootFolder .. "/Circle.png"
-local circleSuccess, circleContent = pcall(function()
-    return game:HttpGet(circleUrl)
-end)
-if circleSuccess and not isfile(circlePath) then
-    writefile(circlePath, circleContent)
-    notify("Circle.png")
-end
-
-local stringtxtUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/main/loadstring"
-local stringtxtPath = rootFolder .. "/loadstring.txt"
-local stringtxtPSuccess, stringtxtContent = pcall(function()
-    return game:HttpGet(stringtxtUrl)
-end)
-if stringtxtPSuccess and not isfile(stringtxtPath) then
-    writefile(stringtxtPath, stringtxtContent)
-    notify("loadstring.txt")
-end
+downloadFile("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loader.lua", rootFolder .. "/loader.lua", "loader.lua")
+downloadFile("https://raw.githubusercontent.com/Rain-Design/Libraries/main/Icon/Circle.png", rootFolder .. "/Circle.png", "Circle.png")
+downloadFile("https://raw.githubusercontent.com/7Smoker/Smoker/main/loadstring", rootFolder .. "/loadstring", "loadstring")
 
 function library:Window(Info)
 Info.Text = Info.Text or "Smoker"
