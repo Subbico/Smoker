@@ -1242,8 +1242,8 @@ function library:Uninject()
 end
 
 local HttpService = game:GetService("HttpService")
-local gameId = tostring(game.GameId)
-local savePath = "Smoker/Data/" .. gameId .. ".json"
+local placeId = tostring(game.PlaceId)
+local savePath = "Smoker/Data/" .. placeId .. ".json"
 
 if not isfolder("Smoker/Data") then
     makefolder("Smoker/Data")
