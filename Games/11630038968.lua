@@ -20,6 +20,7 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
 local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local player = Players.LocalPlayer
 local LocalPlayer = Players.LocalPlayer
@@ -28,7 +29,7 @@ local KillFeed = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("Notificatio
 
 --States
 local InfJumpsVar, KAVar, AutoGGVar, AutoLVar, NormalToxicVar, TargetHeadHudVar, TargetBackHudVar, TargetSafeHudVar = false, false, false, false, false, false, false, false
-local TargetVar, AntiKBConnect, RunKAConnect, CharAddedConnect, CharDiedConnect
+local TargetVar, RunKAConnect, CharAddedConnect, CharDiedConnect
 local PreCameraCFrame, CurrentTarget, LastSwing = nil, nil, 0
 local HumanoidRootPart, character = hrp, Character, hudGui, listFrame, contentFrame, hudconnect
 local activeLabels = {}
@@ -584,26 +585,17 @@ UtilityWindow:Dropdown({
 
 local AntiKBVar = false
 MovementWindow:Toggle({
-    Text = "AntiKnockback Beta",
-    Flag = "AntiKnockbackBeta",
-    Default = Library.Flags["AntiKnockbackBeta"] or false,
+    Text = "AntiKnockback",
+    Flag = "AntiKnockback",
+    Default = Library.Flags["AntiKnockback"] or false,
     Callback = function(state)
-        Library.Flags["AntiKnockbackBeta"] = state
+        Library.Flags["AntiKnockback"] = state
         Library:SaveFlags()
         AntiKBVar = state
         if AntiKBVar then
-            AntiKBConnect = RunService.Heartbeat:Connect(function()
-                if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = player.Character.HumanoidRootPart
-                    hrp.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                    hrp.AssemblyAngularVelocity = Vector3.new(0, 0, 0)
-                end
-            end)
+            ReplicatedStorage.Modules.Knit.Services.CombatService.RE.KnockBackApplied:Destroy()
         else
-            if AntiKBConnect then
-                AntiKBConnect:Disconnect()
-                AntiKBConnect = nil
-            end
+
         end
     end
 })
