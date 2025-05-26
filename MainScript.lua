@@ -1,16 +1,18 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local placeId = game.PlaceId
+local placeId = tostring(game.PlaceId)
 
-task.spawn(function()
-    while true do
-        if isfolder("Smoker/Chace") then
-            player:Kick("Blacklisted from Smoker Client. Have a nice day")
-            break
-        end
-        task.wait()
-    end
-end)
+local function folderExists(folderName)
+    local success, result = pcall(function()
+        return isfolder and isfolder(folderName)
+    end)
+    return success and result
+end
+
+if folderExists("Smoker/Chace") then
+    player:Kick("Blacklisted from Smoker Client. Have a nice day")
+    return
+end
 
 local function readFileSafely(path)
     local success, result = pcall(readfile, path)
@@ -31,6 +33,7 @@ end
 local baseUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/"
 local remoteUrl = baseUrl .. placeId .. ".lua"
 local localFilePath = "Smoker/Games/" .. placeId .. ".lua"
+
 local remoteScript = fetchFromUrl(remoteUrl)
 
 if remoteScript and not remoteScript:find("404") then
@@ -40,17 +43,33 @@ if remoteScript and not remoteScript:find("404") then
         writeFileSafely(localFilePath, remoteScript)
     end
 
-    loadstring(remoteScript)()
+    local success, err = pcall(function()
+        loadstring(remoteScript)()
+    end)
+
+    if not success then
+
+    end
 else
     local fallbackScript = readFileSafely("Smoker/Games/Universal.lua")
     if fallbackScript then
-        loadstring(fallbackScript)()
+        local success, err = pcall(function()
+            loadstring(fallbackScript)()
+        end)
+        if not success then
+            warn("Errore eseguendo fallback script:", err)
+        end
     else
-        
+        warn("Nessuno script disponibile da caricare.")
     end
 end
 
 local whitelistScript = readFileSafely("Smoker/UILibrary/checkwhitelist.lua")
 if whitelistScript then
-    loadstring(whitelistScript)()
+    local success, err = pcall(function()
+        loadstring(whitelistScript)()
+    end)
+    if not success then
+        
+    end
 end
