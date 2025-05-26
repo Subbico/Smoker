@@ -1356,128 +1356,143 @@ local function roundPos(v)
 		math.round(v.Z / 3) * 3
 	)
 end
-MovementWindow:Toggle({
-	Text = "Scaffold",
-	Flag = "Scaffold",
-	Default = false,
-	Callback = function(state)
-        Library.Flags["Scaffold"] = state
-        Library:SaveFlags()
-		ScaffoldVar = state
-		if not state then return end
 
-		local function addPartPositions(part, callback)
-			if not part:IsA("Part") then return end
-			local start = -(part.Size / 2) + Vector3.new(1.5, 1.5, 1.5)
-			for x = 0, part.Size.X - 1, 3 do
-				for y = 0, part.Size.Y - 1, 3 do
-					for z = 0, part.Size.Z - 1, 3 do
-						local pos = part.CFrame:PointToWorldSpace(start + Vector3.new(x, y, z))
-						callback(Vector3.new(math.round(pos.X), math.round(pos.Y), math.round(pos.Z)))
-					end
-				end
+local conn
+
+local function addPartPositions(part, callback)
+	if not part:IsA("Part") then return end
+	local start = -(part.Size / 2) + Vector3.new(1.5, 1.5, 1.5)
+	for x = 0, part.Size.X - 1, 3 do
+		for y = 0, part.Size.Y - 1, 3 do
+			for z = 0, part.Size.Z - 1, 3 do
+				local pos = part.CFrame:PointToWorldSpace(start + Vector3.new(x, y, z))
+				callback(Vector3.new(math.round(pos.X), math.round(pos.Y), math.round(pos.Z)))
 			end
 		end
+	end
+end
 
-		local function init()
-			local map = Workspace:WaitForChild("Map", 10)
-			if not map then return end
+local function init()
+	store.blocks = {}
+	local map = Workspace:WaitForChild("Map", 10)
+	if not map then return end
 
-			for _, v in map:GetDescendants() do
-				addPartPositions(v, function(pos)
-					store.blocks[pos] = v
-				end)
-			end
-
-			map.DescendantAdded:Connect(function(v)
-				addPartPositions(v, function(pos)
-					store.blocks[pos] = v
-				end)
-			end)
-
-			map.DescendantRemoving:Connect(function(v)
-				addPartPositions(v, function(pos)
-					if store.blocks[pos] == v then
-						store.blocks[pos] = nil
-					end
-				end)
-			end)
-		end
-
-		local function getTool()
-			local char = LocalPlayer.Character
-			if char then
-				for _, tool in ipairs(char:GetChildren()) do
-					if tool:IsA("Tool") and tool.Name == "Blocks" then
-						return tool
-					end
-				end
-			end
-
-			local backpack = LocalPlayer:FindFirstChild("Backpack")
-			if backpack then
-				for _, tool in ipairs(backpack:GetChildren()) do
-					if tool:IsA("Tool") and tool.Name == "Blocks" then
-						return tool
-					end
-				end
-			end
-		end
-
-		local function hasAdjacent(pos)
-			for _, offset in pairs(adjacent) do
-				if store.blocks[pos + offset] then return true end
-			end
-			return false
-		end
-
-		local function place(pos, btype)
-			local ghost = ReplicatedStorage.Assets.Blocks[btype]:Clone()
-			ghost.Name = "GhostBlock"
-			ghost.Position = pos
-			ghost:AddTag("GhostBlock")
-			ghost:AddTag("Block")
-			ghost.Parent = Workspace.Map
-
-			task.spawn(function()
-				pcall(function()
-					require(ReplicatedStorage.Blink.Client).item_action.place_block.invoke({
-						position = pos,
-						block_type = btype
-					})
-				end)
-				ghost:Destroy()
-			end)
-		end
-
-		local function step()
-			local char = LocalPlayer.Character
-			if not char then return end
-			local root = char:FindFirstChild("HumanoidRootPart")
-			if not root then return end
-
-			local tool = getTool()
-			if not tool then return end
-
-			local btype = "Clay"
-			local pos = roundPos(root.Position - Vector3.new(0, 4, 0))
-
-			if store.blocks[pos] then return end
-			if not hasAdjacent(pos) then return end
-
-			place(pos, btype)
-		end
-
-		init()
-
-		local conn
-		conn = RunService.Stepped:Connect(function()
-			if not ScaffoldVar then
-				conn:Disconnect()
-				return
-			end
-			step()
+	for _, v in map:GetDescendants() do
+		addPartPositions(v, function(pos)
+			store.blocks[pos] = v
 		end)
+	end
+
+	map.DescendantAdded:Connect(function(v)
+		addPartPositions(v, function(pos)
+			store.blocks[pos] = v
+		end)
+	end)
+
+	map.DescendantRemoving:Connect(function(v)
+		addPartPositions(v, function(pos)
+			if store.blocks[pos] == v then
+				store.blocks[pos] = nil
+			end
+		end)
+	end)
+end
+
+local function getTool()
+	local char = LocalPlayer.Character
+	if char then
+		for _, tool in ipairs(char:GetChildren()) do
+			if tool:IsA("Tool") and tool.Name == "Blocks" then
+				return tool
+			end
+		end
+	end
+
+	local backpack = LocalPlayer:FindFirstChild("Backpack")
+	if backpack then
+		for _, tool in ipairs(backpack:GetChildren()) do
+			if tool:IsA("Tool") and tool.Name == "Blocks" then
+				return tool
+			end
+		end
+	end
+end
+
+local function hasAdjacent(pos)
+	for _, offset in pairs(adjacent) do
+		if store.blocks[pos + offset] then return true end
+	end
+	return false
+end
+
+local function place(pos, btype)
+	local ghost = ReplicatedStorage.Assets.Blocks[btype]:Clone()
+	ghost.Name = "GhostBlock"
+	ghost.Position = pos
+	ghost:AddTag("GhostBlock")
+	ghost:AddTag("Block")
+	ghost.Parent = Workspace.Map
+
+	task.spawn(function()
+		pcall(function()
+			require(ReplicatedStorage.Blink.Client).item_action.place_block.invoke({
+				position = pos,
+				block_type = btype
+			})
+		end)
+		ghost:Destroy()
+	end)
+end
+
+local function step()
+	local char = LocalPlayer.Character
+	if not char then return end
+	local root = char:FindFirstChild("HumanoidRootPart")
+	if not root then return end
+
+	local tool = getTool()
+	if not tool then return end
+
+	local btype = "Clay"
+	local pos = roundPos(root.Position - Vector3.new(0, 4, 0))
+
+	if store.blocks[pos] then return end
+	if not hasAdjacent(pos) then return end
+
+	place(pos, btype)
+end
+
+local function ScaffoldStart()
+	if conn then conn:Disconnect() conn = nil end
+	init()
+	conn = RunService.Stepped:Connect(function()
+		if not ScaffoldVar then
+			conn:Disconnect()
+			conn = nil
+			return
+		end
+		step()
+	end)
+end
+
+local function ScaffoldStop()
+	if conn then
+		conn:Disconnect()
+		conn = nil
+	end
+end
+
+UtilityWindow:Keybind({
+	Text = "Scaffold",
+	Default = Enum.KeyCode.V,
+	Callback = function()
+		ScaffoldVar = not ScaffoldVar
+
+		if ScaffoldVar then
+			ScaffoldStart()
+		else
+			ScaffoldStop()
+		end
 	end
 })
 
@@ -1501,6 +1516,7 @@ local ForHudVars = {
 	["StaffDetector"] = function() return StaffDetectVar end,
 	["SpeedBypass"] = function() return SpeedVar end,
 	["AntiCheatBypass"] = function() return JumpFlyVar end,
+    ["Scaffold"] = function() return ScaffoldVar end,
 }
 
 local function DestroyHUD()
