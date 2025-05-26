@@ -1121,7 +1121,7 @@ SettingsWindow:Button({
 })
 
 local targethudGui, mainFrame, pfp, nameText, hpText, targethudVar
-UtilityWindow:Toggle({
+VisualWindow:Toggle({
     Text = "TargetHUD",
     Flag = "TargetHUD",
     Default = Library.Flags["TargetHUD"] or false,
@@ -1300,6 +1300,187 @@ MovementWindow:Keybind({
     end
 })
 
+local AntiVoidVar = false
+UtilityWindow:Toggle({
+    Text = "AntiVoidBETA",
+    Flag = "AntiVoidBETA",
+    Default = Library.Flags["AntiVoidBETA"] or false,
+    Callback = function(state)
+        Library.Flags["AntiVoidBETA"] = state
+        Library:SaveFlags()
+        AntiKBVar = state
+        if AntiKBVar then
+            if not workspace:FindFirstChild("AntiVoidPart") then
+                local part = Instance.new("Part")
+                part.Name = "AntiVoidPart"
+                part.Size = Vector3.new(1000, 1, 1000)
+                part.Position = Vector3.new(-51, -123, 81)
+                part.Anchored = true
+                part.Transparency = 1
+                part.CanCollide = true
+                part.Parent = workspace
+                part.Touched:Connect(function(otherPart)
+                    local character = otherPart:FindFirstAncestorOfClass("Model")
+                    if character then
+                        local hrp = character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
+                        end
+                    end
+                end)
+            end
+        else
+            local existing = workspace:FindFirstChild("AntiVoidPart")
+            if existing then
+                existing:Destroy()
+            end
+        end
+    end
+})
+
+local ScaffoldVar = false
+local store = { blocks = {} }
+local adjacent = {
+	Vector3.new(0, -3, 0),
+	Vector3.new(0, 3, 0),
+	Vector3.new(-3, 0, 0),
+	Vector3.new(3, 0, 0),
+	Vector3.new(0, 0, -3),
+	Vector3.new(0, 0, 3),
+}
+
+local function roundPos(v)
+	return Vector3.new(
+		math.round(v.X / 3) * 3,
+		math.round(v.Y / 3) * 3,
+		math.round(v.Z / 3) * 3
+	)
+end
+MovementWindow:Toggle({
+	Text = "Scaffold",
+	Flag = "Scaffold",
+	Default = false,
+	Callback = function(state)
+        Library.Flags["Scaffold"] = state
+        Library:SaveFlags()
+		ScaffoldVar = state
+		if not state then return end
+
+		local function addPartPositions(part, callback)
+			if not part:IsA("Part") then return end
+			local start = -(part.Size / 2) + Vector3.new(1.5, 1.5, 1.5)
+			for x = 0, part.Size.X - 1, 3 do
+				for y = 0, part.Size.Y - 1, 3 do
+					for z = 0, part.Size.Z - 1, 3 do
+						local pos = part.CFrame:PointToWorldSpace(start + Vector3.new(x, y, z))
+						callback(Vector3.new(math.round(pos.X), math.round(pos.Y), math.round(pos.Z)))
+					end
+				end
+			end
+		end
+
+		local function init()
+			local map = Workspace:WaitForChild("Map", 10)
+			if not map then return end
+
+			for _, v in map:GetDescendants() do
+				addPartPositions(v, function(pos)
+					store.blocks[pos] = v
+				end)
+			end
+
+			map.DescendantAdded:Connect(function(v)
+				addPartPositions(v, function(pos)
+					store.blocks[pos] = v
+				end)
+			end)
+
+			map.DescendantRemoving:Connect(function(v)
+				addPartPositions(v, function(pos)
+					if store.blocks[pos] == v then
+						store.blocks[pos] = nil
+					end
+				end)
+			end)
+		end
+
+		local function getTool()
+			local char = LocalPlayer.Character
+			if char then
+				for _, tool in ipairs(char:GetChildren()) do
+					if tool:IsA("Tool") and tool.Name == "Blocks" then
+						return tool
+					end
+				end
+			end
+
+			local backpack = LocalPlayer:FindFirstChild("Backpack")
+			if backpack then
+				for _, tool in ipairs(backpack:GetChildren()) do
+					if tool:IsA("Tool") and tool.Name == "Blocks" then
+						return tool
+					end
+				end
+			end
+		end
+
+		local function hasAdjacent(pos)
+			for _, offset in pairs(adjacent) do
+				if store.blocks[pos + offset] then return true end
+			end
+			return false
+		end
+
+		local function place(pos, btype)
+			local ghost = ReplicatedStorage.Assets.Blocks[btype]:Clone()
+			ghost.Name = "GhostBlock"
+			ghost.Position = pos
+			ghost:AddTag("GhostBlock")
+			ghost:AddTag("Block")
+			ghost.Parent = Workspace.Map
+
+			task.spawn(function()
+				pcall(function()
+					require(ReplicatedStorage.Blink.Client).item_action.place_block.invoke({
+						position = pos,
+						block_type = btype
+					})
+				end)
+				ghost:Destroy()
+			end)
+		end
+
+		local function step()
+			local char = LocalPlayer.Character
+			if not char then return end
+			local root = char:FindFirstChild("HumanoidRootPart")
+			if not root then return end
+
+			local tool = getTool()
+			if not tool then return end
+
+			local btype = "Clay"
+			local pos = roundPos(root.Position - Vector3.new(0, 4, 0))
+
+			if store.blocks[pos] then return end
+			if not hasAdjacent(pos) then return end
+
+			place(pos, btype)
+		end
+
+		init()
+
+		local conn
+		conn = RunService.Stepped:Connect(function()
+			if not ScaffoldVar then
+				conn:Disconnect()
+				return
+			end
+			step()
+		end)
+	end
+})
+
 local ForHudVars = {
 	["NameTags"] = function() return NameTagsVar end,
 	["InfJumps"] = function() return InfJumpsVar end,
@@ -1320,6 +1501,7 @@ local ForHudVars = {
 	["StaffDetector"] = function() return StaffDetectVar end,
 	["SpeedBypass"] = function() return SpeedVar end,
 	["AntiCheatBypass"] = function() return JumpFlyVar end,
+    ["Scaffold"] = function() return ScaffoldVar, end,
 }
 
 local function DestroyHUD()
@@ -1457,7 +1639,7 @@ local function UpdStatusHud()
 	end
 end
 
-UtilityWindow:Dropdown({
+VisualWindow:Dropdown({
 	Text = "HUD Style",
 	List = {"Off", "Box", "Drop"},
     Callback = function(selected)
