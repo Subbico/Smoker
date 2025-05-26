@@ -1501,7 +1501,6 @@ local ForHudVars = {
 	["StaffDetector"] = function() return StaffDetectVar end,
 	["SpeedBypass"] = function() return SpeedVar end,
 	["AntiCheatBypass"] = function() return JumpFlyVar end,
-    ["Scaffold"] = function() return ScaffoldVar, end,
 }
 
 local function DestroyHUD()
