@@ -1,38 +1,306 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/Library", true))()
-Library.DefaultColor = Color3.fromRGB(3, 73, 252)
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/4lpaca-pin/CompKiller/refs/heads/main/src/source.luau"))();
+local Notify = Library.newNotify();
 
-local VisualWindow = Library:Window({Text = "Visual"})
-local MovementWindow = Library:Window({Text = "Movement"})
-local SettingsWindow = Library:Window({Text = "Settings"})
+--Config
+local ConfigManager = Library:ConfigManager({Directory = "SmokerV4/games", Config = "Universal"});
+Library:Loader(getcustomasset("SmokerV4/Assets/newlogo.png"), 2.5):yield()
 
+-- Window --
+local SmokerV4 = Library.new({Name="Smoker | Universal",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
+
+-- Notification --
+Notify.new({Title = "SmokerV4",Content = "Thank you for use this script!", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
+
+-- Watermark --
+local Watermark = SmokerV4:Watermark();
+Watermark:AddText({Icon = "user",Text = game.Players.LocalPlayer.Name});
+local Time = Watermark:AddText({Icon = "timer",Text = "TIME"});
+Watermark:AddText({Icon = "clock",Text = Library:GetDate()});
+Watermark:AddText({Icon = "server",Text = Library.Version});
+
+task.spawn(function()
+	while true do task.wait()
+		Time:SetText(Library:GetTimeNow());
+	end
+end)
+
+--
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
+
+-- Windows --
+SmokerV4:DrawCategory({Name = "Smoker"});
+
+local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", EnableScrolling = true});
+local UtilityWindow = SmokerV4:DrawTab({Name = "Utility", Icon = "lucide-hammer", EnableScrolling = true});
+local MovementWindow = SmokerV4:DrawTab({Name = "Movement", Icon = "lucide-layout-dashboard", EnableScrolling = true});
+local VisualWindow = SmokerV4:DrawTab({Name = "Visual", Icon = "lucide-eye", EnableScrolling = true});
+
+--Vars
+local NameTagsVar = false
+local VibeVar = false
+local SpeedVar2 = false
+local SpeedVar = 16
+
+--Hud
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+
+local hudGui, listFrame, contentFrame, hudconnect
+local activeLabels = {}
+local HUDStyle = "Drop"
+local HUDEnabled = false
+local HUDTextColor = Color3.fromRGB(0, 255, 140)
+local HUDLabelColor = Color3.fromRGB(0, 255, 140)
+
+local ForHudVars = {
+	["Vibe"] = function() return VibeVar end
+}
+
+local function DestroyHUD()
+	if hudconnect then
+		hudconnect:Disconnect()
+		hudconnect = nil
+	end
+	if hudGui then
+		hudGui:Destroy()
+		hudGui, listFrame, contentFrame = nil, nil, nil
+		activeLabels = {}
+	end
+end
+
+local function CreateHUD()
+	DestroyHUD()
+
+	hudGui = Instance.new("ScreenGui")
+	hudGui.Name = "HUDStatus"
+	hudGui.Parent = CoreGui
+	hudGui.ResetOnSpawn = false
+
+	listFrame = Instance.new("Frame", hudGui)
+	listFrame.Size = UDim2.new(0, 200, 0, 300)
+	listFrame.Position = HUDStyle == "Drop"
+		and UDim2.new(1, -210, 0, 10)
+		or UDim2.new(1, -210, 0.3, 0)
+
+	listFrame.BackgroundTransparency = (HUDStyle == "Drop") and 1 or 0.2
+	listFrame.BackgroundColor3 = (HUDStyle == "Drop") and Color3.new(0, 0, 0) or Color3.fromRGB(20, 20, 30)
+	listFrame.BorderSizePixel = 0
+	Instance.new("UICorner", listFrame).CornerRadius = UDim.new(0, 8)
+
+	if HUDStyle == "Box" then
+		local stroke = Instance.new("UIStroke", listFrame)
+		stroke.Color = HUDLabelColor
+		stroke.Thickness = 5
+
+		local title = Instance.new("TextLabel", listFrame)
+		title.Name = "BoxTitle"
+		title.Size = UDim2.new(1, -10, 0, 30)
+		title.Position = UDim2.new(0, 5, 0, 5)
+		title.BackgroundTransparency = 1
+		title.TextColor3 = HUDTextColor
+		title.Font = Enum.Font.GothamBold
+		title.TextScaled = true
+		title.Text = "Smoker Client"
+	else
+		local header = Instance.new("TextLabel", listFrame)
+		header.Name = "DropHeader"
+		header.Size = UDim2.new(1, -20, 0, 28)
+		header.Position = UDim2.new(0, 10, 0, 0)
+		header.BackgroundTransparency = 1
+		header.RichText = true
+		header.TextScaled = true
+		header.Font = Enum.Font.GothamBold
+		header.TextColor3 = HUDTextColor
+		header.TextXAlignment = Enum.TextXAlignment.Center
+		header.TextYAlignment = Enum.TextYAlignment.Center
+		header.Text = "<font size='26'>SMOKER</font> <font size='18'>V3</font>"
+	end
+
+	contentFrame = Instance.new("ScrollingFrame", listFrame)
+	contentFrame.Size = UDim2.new(1, -10, 1, (HUDStyle == "Drop") and -10 or -40)
+	contentFrame.Position = UDim2.new(0, 5, 0, (HUDStyle == "Drop") and 30 or 35)
+	contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+	contentFrame.BackgroundTransparency = 1
+	contentFrame.ScrollBarThickness = 4
+	contentFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	contentFrame.ClipsDescendants = true
+
+	local layout = Instance.new("UIListLayout", contentFrame)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Padding = UDim.new(0, 4)
+end
+
+local function UpdateHUD()
+	if not contentFrame then return end
+
+	for name, check in pairs(ForHudVars) do
+		local enabled = check()
+		local existing = activeLabels[name]
+
+		if enabled and not existing then
+			local label = Instance.new("TextLabel")
+			label.Name = name
+			label.Size = UDim2.new(1, 0, 0, 24)
+			label.BackgroundTransparency = 1
+			label.TextTransparency = 1
+			label.Text = name
+			label.Font = Enum.Font.GothamSemibold
+			label.TextScaled = true
+			label.LayoutOrder = #contentFrame:GetChildren()
+			label.TextColor3 = HUDLabelColor
+			label.Parent = contentFrame
+
+			if HUDStyle == "Drop" then
+				local line = Instance.new("Frame")
+				line.Name = "ColorLine"
+				line.Parent = label
+				line.Size = UDim2.new(0, 4, 1, 0)
+				line.Position = UDim2.new(1, -4, 0, 0)
+				line.AnchorPoint = Vector2.new(1, 0)
+				line.BackgroundColor3 = HUDLabelColor
+				line.BorderSizePixel = 0
+			end
+
+			TweenService:Create(label, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+				TextTransparency = 0
+			}):Play()
+
+			activeLabels[name] = label
+		elseif not enabled and existing then
+			activeLabels[name] = nil
+			local hide = TweenService:Create(existing, TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
+				TextTransparency = 1
+			})
+			hide:Play()
+			hide.Completed:Connect(function()
+				if existing then existing:Destroy() end
+			end)
+		end
+	end
+end
+
+local function ApplyColors()
+	if not listFrame then return end
+
+	for _, label in pairs(activeLabels) do
+		if label and label:IsDescendantOf(game) then
+			label.TextColor3 = HUDLabelColor
+			local line = label:FindFirstChild("ColorLine")
+			if line then
+				line.BackgroundColor3 = HUDLabelColor
+			end
+		end
+	end
+
+	if HUDStyle == "Box" then
+		local stroke = listFrame:FindFirstChildOfClass("UIStroke")
+		if stroke then stroke.Color = HUDLabelColor end
+		local title = listFrame:FindFirstChild("BoxTitle")
+		if title then title.TextColor3 = HUDTextColor end
+	else
+		local header = listFrame:FindFirstChild("DropHeader")
+		if header then header.TextColor3 = HUDTextColor end
+	end
+end
+
+local HudSec = VisualWindow:DrawSection({
+	Name = "HUD Style",
+	Position = "left"
+})
+
+HudSec:AddToggle({
+	Name = "HUD",
+	Flag = "HUD",
+	Default = false,
+	Callback = function(enabled)
+		HUDEnabled = enabled
+		if enabled then
+			CreateHUD()
+		else
+			DestroyHUD()
+		end
+	end
+})
+
+HudSec:AddDropdown({
+	Name = "HUD Style",
+	Default = "Drop",
+	Flag = "HUDStyle",
+	Values = {"Box", "Drop"},
+	Callback = function(selected)
+		HUDStyle = selected
+		if HUDEnabled then
+			CreateHUD()
+		end
+	end
+})
+
+HudSec:AddColorPicker({ 
+    Name = "Watermark Color", 
+    Default = HUDTextColor,
+    Flag = "HUDWaterColor",
+    Callback = function(color)
+        HUDTextColor = color
+        ApplyColors()
+    end
+})
+
+HudSec:AddColorPicker({ 
+    Name = "Hud Color", 
+    Default = HUDLabelColor,
+    Flag = "HUDColor",
+    Callback = function(color)
+        HUDLabelColor = color
+        ApplyColors()
+    end
+})
+
+task.spawn(function()
+	while task.wait(0.1) do
+		if HUDEnabled then
+			UpdateHUD()
+			ApplyColors()
+		end
+	end
+end)
+
+
+--NameTags
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local nametagConnections = {}
+local NameTagsSec = VisualWindow:DrawSection({
+    Name = "NameTag",
+    Position = "left"
+})
 
-local function NameTagCreate(player)
+local connections = {}
+local tagColor = Color3.fromRGB(0, 255, 140)
+
+local function createNameTag(player)
     if player == LocalPlayer then return end
-    if nametagConnections[player] then
-        for _, conn in pairs(nametagConnections[player]) do
-            conn:Disconnect()
+    if connections[player] then
+        for _, c in pairs(connections[player]) do
+            c:Disconnect()
         end
-        nametagConnections[player] = nil
+        connections[player] = nil
     end
 
-    local function onCharacterAdded(character)
+    local function setupCharacter(character)
         local head = character:WaitForChild("Head", 5)
         local humanoid = character:WaitForChild("Humanoid", 5)
         if not head or not humanoid then return end
 
-        if head:FindFirstChild("CustomNametag") then
-            head.CustomNametag:Destroy()
-        end
+        local oldTag = head:FindFirstChild("CustomNametag")
+        if oldTag then oldTag:Destroy() end
 
         local billboard = Instance.new("BillboardGui")
         billboard.Name = "CustomNametag"
+        billboard.Parent = head
         billboard.Adornee = head
         billboard.Size = UDim2.new(0, 250, 0, 50)
         billboard.StudsOffset = Vector3.new(0, 2.5, 0)
@@ -45,56 +313,50 @@ local function NameTagCreate(player)
         textLabel.TextStrokeTransparency = 0
         textLabel.TextScaled = true
         textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextColor3 = tagColor
         textLabel.Text = ""
 
-        billboard.Parent = head
-
-        task.spawn(function()
-            while textLabel and textLabel.Parent do
-                textLabel.TextColor3 = Library.DefaultColor
-                task.wait(0.03)
-            end
-        end)
-
-        local updateConn = RunService.RenderStepped:Connect(function()
-            if not Library.Flags["Nametags"] then
-                textLabel.Text = ""
-                return
-            end
-            if humanoid.Health <= 0 then
+        local renderConnection = RunService.RenderStepped:Connect(function()
+            if not NameTagsVar or humanoid.Health <= 0 then
                 textLabel.Text = ""
                 return
             end
 
-            local health = math.floor(humanoid.Health)
-            local maxHealth = math.floor(humanoid.MaxHealth)
-            local name = player.Name
+            textLabel.TextColor3 = tagColor
 
+            local hp = math.floor(humanoid.Health)
+            local maxHp = math.floor(humanoid.MaxHealth)
             local distance = 0
+
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - head.Position).Magnitude)
+                distance = math.floor(
+                    (LocalPlayer.Character.HumanoidRootPart.Position - head.Position).Magnitude
+                )
             end
 
-            textLabel.Text = string.format("[%d/%d] %s [%dm]", health, maxHealth, name, distance)
+            textLabel.Text = string.format("[%d/%d] %s [%dm]", hp, maxHp, player.Name, distance)
         end)
 
-        nametagConnections[player] = nametagConnections[player] or {}
-        table.insert(nametagConnections[player], updateConn)
+        connections[player] = connections[player] or {}
+        table.insert(connections[player], renderConnection)
     end
 
-    local charConn = player.CharacterAdded:Connect(onCharacterAdded)
-    nametagConnections[player] = nametagConnections[player] or {}
-    table.insert(nametagConnections[player], charConn)
+    local charConn = player.CharacterAdded:Connect(setupCharacter)
+    connections[player] = connections[player] or {}
+    table.insert(connections[player], charConn)
 
     if player.Character then
-        onCharacterAdded(player.Character)
+        setupCharacter(player.Character)
     end
 end
 
-local function clearNametags()
-    for player, conns in pairs(nametagConnections) do
-        for _, conn in pairs(conns) do conn:Disconnect() end
-        nametagConnections[player] = nil
+local function clearAllTags()
+    for player, conns in pairs(connections) do
+        for _, c in pairs(conns) do
+            c:Disconnect()
+        end
+        connections[player] = nil
+
         if player.Character and player.Character:FindFirstChild("Head") then
             local tag = player.Character.Head:FindFirstChild("CustomNametag")
             if tag then tag:Destroy() end
@@ -102,197 +364,180 @@ local function clearNametags()
     end
 end
 
-VisualWindow:Label({
-    Text = "Smoker Client",
-    Color = Library.DefaultColor
-})
-
-VisualWindow:Toggle({
-    Text = "Vibe",
-    Flag = "Vibe",
-    Default = Library.Flags["Vibe"] or false,
-    Callback = function(state)
-        Library.Flags["Vibe"] = state
-        Library:SaveFlags()
-        if state then
-            Lighting.TimeOfDay = "00:00:00"
-            Lighting.Ambient = Color3.fromRGB(0, 85, 255)
-            Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
-            Lighting.Technology = Enum.Technology.Future
-        end
-    end
-})
-
-VisualWindow:Toggle({
-    Text = "Nametags",
-    Flag = "Nametags",
-    Default = Library.Flags["Nametags"] or false,
-    Callback = function(state)
-        Library.Flags["Nametags"] = state
-        Library:SaveFlags()
-        if state then
+local NameTagsToggle = NameTagsSec:AddToggle({
+    Name = "NameTags",
+    Flag = "NameTags",
+    Default = false,
+    Callback = function(enabled)
+        NameTagsVar = enabled
+        if enabled then
             for _, player in pairs(Players:GetPlayers()) do
-                NameTagCreate(player)
+                createNameTag(player)
             end
         else
-            clearNametags()
+            clearAllTags()
         end
     end
 })
 
-VisualWindow:Toggle({
-    Text = "FPSBoost",
-    Flag = "FPSBoost",
-    Default = Library.Flags["FPSBoost"] or false,
+NameTagsSec:AddColorPicker({
+    Name = "Color",
+    Default = Color3.fromRGB(0, 255, 140),
+    Flag = "NameTagsColor",
+    Callback = function(newColor)
+        tagColor = newColor
+    end
+})
+
+Players.PlayerAdded:Connect(function(player)
+    if NameTagsVar then
+        createNameTag(player)
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    if connections[player] then
+        for _, c in pairs(connections[player]) do
+            c:Disconnect()
+        end
+        connections[player] = nil
+    end
+end)
+
+--Vibe
+local VibeSec = VisualWindow:DrawSection({Name = "Vibe",Position = "right"})
+local vibeColor = Color3.fromRGB(0, 85, 255)
+local function setVibe(state)
+    if state then
+        Lighting.TimeOfDay = "00:00:00"
+        Lighting.Ambient = vibeColor
+        Lighting.OutdoorAmbient = Color3.fromRGB(0, 0, 0)
+        Lighting.Technology = Enum.Technology.Future
+    else
+        Lighting.TimeOfDay = "14:00:00"
+        Lighting.Ambient = Color3.fromRGB(127, 127, 127)
+        Lighting.OutdoorAmbient = Color3.fromRGB(127, 127, 127)
+        Lighting.Technology = Enum.Technology.Compatibility
+    end
+end
+
+VibeSec:AddToggle({
+    Name = "Vibe",
+    Flag = "Vibe",
+    Default = false,
     Callback = function(state)
-        Library.Flags["FPSBoost"] = state
-        Library:SaveFlags()
-        if state then
-            for _, obj in ipairs(workspace:GetDescendants()) do
-                if obj:IsA("Texture") or obj:IsA("Decal") then
-                    obj.Texture = ""
-                elseif obj:IsA("MeshPart") then
-                    obj.TextureID = ""
-                end
-            end
-            Lighting.GlobalShadows = false
-            Lighting.FogEnd = 1000000
-            Lighting.Brightness = 0
-            for _, part in ipairs(workspace:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Material = Enum.Material.SmoothPlastic
-                    part.Reflectance = 0
-                end
-            end
+        VibeVar = state
+        setVibe(state)
+    end
+})
+
+VibeSec:AddColorPicker({
+    Name = "Color",
+    Default = Color3.fromRGB(0, 85, 255),
+    Flag = "VibeColor",
+    Callback = function(color)
+        vibeColor = color
+        if VibeVar then
+            Lighting.Ambient = color
         end
     end
 })
 
-local WatermarkState = nil
-local WatermarkVar = false
-VisualWindow:Toggle({
-    Text = "Watermark",
-	Flag = "Watermark",
-    Default = Library.Flags["Watermark"] or false,
+--Speed
+local SpeedSec = MovementWindow:DrawSection({Name = "Speed", Position = "left"})
+
+local function setSpeed(value)
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        LocalPlayer.Character.Humanoid.WalkSpeed = value
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function(char)
+    local hum = char:WaitForChild("Humanoid", 5)
+    if hum and SpeedVar2 then
+        hum.WalkSpeed = SpeedVar
+    end
+end)
+
+SpeedSec:AddToggle({
+    Name = "Speed",
+    Flag = "SpeedToggle",
+    Default = false,
     Callback = function(state)
-	    Library.Flags["Watermark"] = state
-        Library:SaveFlags()
-        WatermarkVar = state
-
+        SpeedVar2 = state
         if state then
-            if not WatermarkState then
-                WatermarkState = Instance.new("ScreenGui")
-                WatermarkState.Name = "SmokerWatermark"
-                WatermarkState.ResetOnSpawn = false
-                WatermarkState.IgnoreGuiInset = true
-                WatermarkState.ZIndexBehavior = Enum.ZIndexBehavior.Global
-                WatermarkState.DisplayOrder = 100
-                WatermarkState.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-                local container = Instance.new("Frame")
-                container.Name = "WatermarkContainer"
-                container.AnchorPoint = Vector2.new(1, 0)
-                container.Position = UDim2.new(1, -10, 0, 10)
-                container.Size = UDim2.new(0, 320, 0, 60)
-                container.BackgroundTransparency = 0.25
-                container.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                container.BorderSizePixel = 0
-                container.Parent = WatermarkState
-
-                local logo = Instance.new("ImageLabel")
-                logo.Name = "Logo"
-                logo.Size = UDim2.new(0, 48, 0, 48)
-                logo.Position = UDim2.new(0, 6, 0.6, -24)
-                logo.BackgroundTransparency = 1
-                logo.Image = getcustomasset("Smoker/Assets/logo.png")
-                logo.ScaleType = Enum.ScaleType.Fit
-                logo.Parent = container
-
-                local label = Instance.new("TextLabel")
-                label.Name = "Title"
-                label.Size = UDim2.new(1, -60, 1, 0)
-                label.Position = UDim2.new(0, 60, 0, 0)
-                label.BackgroundTransparency = 1
-                label.Text = "Smoker Client"
-                label.TextColor3 = Library.DefaultColor
-                label.TextStrokeTransparency = 0.75
-                label.Font = Enum.Font.SourceSansBold
-                label.TextScaled = true
-                label.TextXAlignment = Enum.TextXAlignment.Left
-                label.Parent = container
-
-                SyncColor(label)
-
-                local design = Instance.new("UICorner")
-                design.Parent = container
-            else
-                WatermarkState.Enabled = true
-            end
-
-            local playerGui = game:GetService("Players").LocalPlayer:FindFirstChildOfClass("PlayerGui")
-            if playerGui then
-                for _, gui in ipairs(playerGui:GetChildren()) do
-                    if gui:IsA("ScreenGui") and gui.Name:lower():find("leader") then
-                        gui.DisplayOrder = 1
-                    end
-                end
-            end
+            setSpeed(SpeedVar)
         else
-            if WatermarkState then
-                WatermarkState.Enabled = false
-            end
+            setSpeed(16)
         end
     end
 })
 
-MovementWindow:Slider({
-    Text = "Speed",
+SpeedSec:AddSlider({
+    Name = "Speed",
     Flag = "Speed",
-    Default = Library.Flags["Speed"] or 16,
-    Minimum = 16,
-    Maximum = 100,
+    Default = 16,
+    Min = 16,
+    Max = 100,
     Callback = function(value)
-        Library.Flags["Speed"] = value
-        Library:SaveFlags()
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-            LocalPlayer.Character.Humanoid.WalkSpeed = value
+        SpeedVar = value
+        if SpeedVar2 then
+            setSpeed(value)
         end
     end
 })
 
-SettingsWindow:Dropdown({
-    Text = "Theme",
-    List = {"Dark", "White", "Aqua", "Nova", "RGB"},
-    Callback = function(theme)
-        RGBEnabled = false
+-- Settings
+local SettingsWindow = SmokerV4:DrawTab({
+    Icon = "settings-3",
+    Name = "Settings",
+    Type = "Single",
+    EnableScrolling = true
+})
 
-        if theme == "Dark" then
-            Library.DefaultColor = Color3.new(0, 0, 0)
-        elseif theme == "White" then
-            Library.DefaultColor = Color3.new(1, 1, 1)
-        elseif theme == "Aqua" then
-            Library.DefaultColor = Color3.fromRGB(66, 245, 194)
-        elseif theme == "Nova" then
-            Library.DefaultColor = Color3.fromRGB(255, 0, 234)
-        elseif theme == "RGB" then
-            RGBEnabled = true
-            task.spawn(function()
-                while RGBEnabled do
-                    for hue = 0, 1, 0.01 do
-                        if not RGBEnabled then break end
-                        Library.DefaultColor = Color3.fromHSV(hue, 1, 1)
-                        task.wait(0.03)
-                    end
-                end
-            end)
+local Settings = SettingsWindow:DrawSection({
+    Name = "UI Settings"
+})
+
+Settings:AddToggle({
+    Name = "Always Show Sidebar",
+    Default = false,
+    Callback = function(v)
+        SmokerV4.AlwayShowTab = v
+    end
+})
+
+SettingsWindow:DrawSection({
+    Name = "UI Themes"
+}):AddDropdown({
+    Name = "Select Theme",
+    Default = "Default",
+    Values = {
+        "Default",
+        "Dark Green",
+        "Dark Blue",
+        "Purple Rose",
+        "Skeet",
+        "Nova"
+    },
+    Callback = function(v)
+        if v == "Nova" then
+            Library.Colors.Highlight = Color3.fromRGB(255, 100, 150)
+            Library.Colors.Toggle = Color3.fromRGB(100, 200, 255)
+            Library.Colors.Background = Color3.fromRGB(25, 25, 25)
+            Library.Colors.StrokeColor = Color3.fromRGB(255, 255, 255)
+            Library.Colors.LineColor = Color3.fromRGB(180, 180, 180)
+            Library:RefreshCurrentColor()
+        else
+            Library:SetTheme(v)
         end
     end
 })
 
-SettingsWindow:Keybind({
-    Text = "Toggle Library",
-    Default = Enum.KeyCode.RightShift,
-    Callback = function()
-        Library:Toggle()
-    end
+local ConfigsWindow = SmokerV4:DrawConfig({
+    Name = "Config",
+    Icon = "folder",
+    Config = ConfigManager
 })
+
+ConfigsWindow:Init()

@@ -1,43 +1,74 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local gameId = tostring(game.PlaceId)
-local PathURL = "https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/"
+local p = game:GetService("Players").LocalPlayer
+local hs = game:GetService("HttpService")
+local base = "https://raw.githubusercontent.com/7Smoker/Smoker/main/"
+local api = "https://api.github.com/repos/7Smoker/Smoker/contents/"
+local root = "SmokerV4"
 
-local function folderExists(folderName)
-    local success, result = pcall(function()
-        return isfolder and isfolder(folderName)
-    end)
-    return success and result
+local function ex(f)
+	local s, r = pcall(function() return isfolder(f) end)
+	return s and r
 end
 
-if folderExists("Smoker/Chace") then
-    player:Kick("Blacklisted from Smoker Client. Have a nice day")
-    return
+if ex("SmokerV4/Chace") then
+	p:Kick("Blacklisted from Smoker Client. Have a nice day")
+	return
 end
 
-local function safeLoadstring(url)
-    local success, response = pcall(function()
-        return game:HttpGet(url)
-    end)
-
-    if success and response and not response:find("404") then
-        local ok, err = pcall(loadstring(response))
-        if not ok then
-
-        end
-        return true
-    else
-        return false
-    end
+local function fetch(u)
+	local s, r = pcall(function() return game:HttpGet(u) end)
+	return s and r and not r:find("404") and r
 end
 
-local gameScriptUrl = PathURL .. gameId .. ".lua"
-local loadedGameScript = safeLoadstring(gameScriptUrl)
-
-if not loadedGameScript then
-    local universalUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/main/Games/Universal.lua"
-    safeLoadstring(universalUrl)
+local function run(u)
+	local r = fetch(u)
+	if r then pcall(loadstring(r)) return true end
 end
 
-local whitelistUrl = "https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/UILibrary/checkwhitelist.lua"
-safeLoadstring(whitelistUrl)
+if not run(base .. "games/" .. game.PlaceId .. ".lua") then
+	run(base .. "games/Universal.lua")
+end
+
+run(base .. "UILibrary/Whitelist.lua")
+
+local function mk(p)
+	if not isfolder(p) then makefolder(p) end
+end
+
+for _, f in ipairs({"Games", "Assets", "Data", "UILibrary"}) do
+	mk(root .. "/" .. f)
+end
+
+local function grab(path, localPath)
+	local r = fetch(api .. path)
+	if not r then return end
+	for _, v in pairs(hs:JSONDecode(r)) do
+		local lp = localPath .. "/" .. v.name
+		if v.type == "file" then
+			if not isfile(lp) then
+				local d = fetch(v.download_url)
+				if d then
+					local parts = string.split(lp, "/")
+					table.remove(parts)
+					local dir = table.concat(parts, "/")
+					if not isfolder(dir) then makefolder(dir) end
+					writefile(lp, d)
+				end
+			end
+		else
+			mk(lp)
+			grab(path .. "/" .. v.name, lp)
+		end
+	end
+end
+
+for _, f in ipairs({"Games", "Assets", "Data", "UILibrary"}) do
+	grab(f, root .. "/" .. f)
+end
+
+local function dl(u, path)
+	local r = fetch(u)
+	if r and not isfile(path) then writefile(path, r) end
+end
+
+dl(base .. "loader.lua", root .. "/loader.lua")
+dl(base .. "loadstring", root .. "/loadstring")
