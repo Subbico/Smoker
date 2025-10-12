@@ -20,7 +20,7 @@ local function notify(msg)
     StarterGui:SetCore("SendNotification", {
         Title = "Smoker Client";
         Text = msg;
-        Duration = 5,
+        Duration = 15,
     })
 end
 
