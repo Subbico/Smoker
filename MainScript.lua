@@ -7,11 +7,10 @@ local root = "SmokerV4"
 local Patched = {
     ["71480482338212"] = {
         Messages = {
-            "Smxker its currently Patched for this game",
-            "Please wait until we patch the anticheat again. (soon)",
-            "⚠️ BANNABLE: KillAura, Speed been patched"
+            "Smxker Client got unpatched. Report any bug in the github repository.",
+			"Thanks for your support! Enjoy. - 7Smxker"
         },
-        ExecuteAnyway = false
+        ExecuteAnyway = true
     }
 }
 

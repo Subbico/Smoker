@@ -24,11 +24,12 @@ task.spawn(function()
 	end
 end)
 
---
+--Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Lighting = game:GetService("Lighting")
+local WCamera = workspace.CurrentCamera
 
 -- Windows --
 SmokerV4:DrawCategory({Name = "Smoker"});
@@ -43,6 +44,10 @@ local NameTagsVar = false
 local VibeVar = false
 local SpeedVar2 = false
 local SpeedVar = 16
+local CapeVar = false
+
+--Colors
+local CapeColor = Color3.fromRGB(0, 0, 0)
 
 --Hud
 local TweenService = game:GetService("TweenService")
@@ -56,7 +61,10 @@ local HUDTextColor = Color3.fromRGB(0, 255, 140)
 local HUDLabelColor = Color3.fromRGB(0, 255, 140)
 
 local ForHudVars = {
-	["Vibe"] = function() return VibeVar end
+	["Vibe"] = function() return VibeVar end,
+    ["NameTags"] = function() return NameTagsVar end,
+    ["Speed"] = function() return SpeedVar2 end,
+    ["Cape"] = function() return CapeVar end
 }
 
 local function DestroyHUD()
@@ -485,6 +493,133 @@ SpeedSec:AddSlider({
             setSpeed(value)
         end
     end
+})
+
+--Cape
+local WCamera = workspace.CurrentCamera
+local CapeSec = UtilityWindow:DrawSection({Name="Cape", Position="right"})
+local DefaultCape = "SmokerV4/Assets/Capes/Default.png"
+local tex, part, mot = DefaultCape, nil, nil
+
+local function link(a)
+	if mot then mot:Destroy() end
+	local b = a:FindFirstChild("UpperTorso") or a:FindFirstChild("Torso") or a:FindFirstChild("HumanoidRootPart")
+	if not (b and part) then return end
+	part.Parent = WCamera
+	local w = Instance.new("Motor6D")
+	w.MaxVelocity = .08
+	w.Part0 = part
+	w.Part1 = b
+	w.C0 = CFrame.new(0,2,0)*CFrame.Angles(0,math.rad(-90),0)
+	w.C1 = CFrame.new(0,b.Size.Y/2,0.45)*CFrame.Angles(0,math.rad(90),0)
+	w.Parent = part
+	mot = w
+end
+
+local function build(a)
+	if part then part:Destroy() end
+	local p = Instance.new("Part")
+	p.Size = Vector3.new(2,4,0.1)
+	p.Color = CapeColor
+	p.CanCollide, p.CanQuery, p.Massless = false,false,true
+	p.Material = Enum.Material.SmoothPlastic
+	p.CastShadow = false
+	p.Parent = WCamera
+
+	local g = Instance.new("SurfaceGui")
+	g.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	g.Adornee, g.Parent = p,p
+
+	local img = Instance.new("ImageLabel")
+	img.Size = UDim2.fromScale(1,1)
+	img.BackgroundTransparency = 1
+	img.Image = tex:find("rbxasset") and tex or getcustomasset(tex)
+	img.Parent = g
+
+	part = p
+	link(a)
+
+	task.spawn(function()
+		while CapeVar and mot and part do
+			local c = LocalPlayer.Character
+			if c and c:FindFirstChild("HumanoidRootPart") then
+				local v = math.min(c.HumanoidRootPart.Velocity.Magnitude,90)
+				mot.DesiredAngle = math.rad(6)+math.rad(v)+(v>1 and math.abs(math.cos(tick()*5))/3 or 0)
+			end
+			if not WCamera or not WCamera.CFrame then WCamera = workspace.CurrentCamera task.wait() continue end
+			if WCamera and WCamera.Focus then
+				local dist = (WCamera.CFrame.Position - WCamera.Focus.Position).Magnitude
+				g.Enabled = dist>0.6
+				p.Transparency = dist>0.6 and 0 or 1
+			end
+			task.wait()
+		end
+	end)
+end
+
+local function clear()
+	if part then part:Destroy() end
+	part,mot = nil,nil
+end
+
+CapeSec:AddToggle({
+	Name="Cape",
+	Flag="Cape",
+	Callback=function(v)
+		CapeVar=v
+		if v then
+			if LocalPlayer.Character then build(LocalPlayer.Character) end
+			LocalPlayer.CharacterAdded:Connect(function(c)
+				if CapeVar then task.wait(1) build(c) end
+			end)
+		else
+			clear()
+		end
+	end
+})
+
+CapeSec:AddDropdown({
+	Name="Capes",
+	Default="Default",
+	Flag="CapeType",
+	Values={"Default","Cat","Waifu","Watermark","Yap", "Private"},
+	Callback=function(v)
+		local path="SmokerV4/Assets/Capes/"..v..".png"
+		if isfile(path) then
+			tex=path
+			if part then
+				clear()
+				build(LocalPlayer.Character)
+			end
+		end
+	end
+})
+
+CapeSec:AddTextBox({
+	Name="Texture",
+	Flag="CapeTexture",
+	Placeholder="RobloxID / Path",
+	Callback=function(v)
+		task.delay(0.5,function()
+			if v=="" then v=DefaultCape end
+			if not isfile(v) and not v:find("rbxasset") then return end
+			tex=v
+			if part then
+				clear()
+				build(LocalPlayer.Character)
+			end
+		end)
+	end
+})
+
+CapeSec:AddColorPicker({
+	Name="Color",
+	Flag="CapeColor",
+	Default=CapeColor,
+	Callback=function(v)
+		CapeColor=v
+		if part then part.Color=v end
+	end
 })
 
 -- Settings
