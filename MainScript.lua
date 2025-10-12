@@ -39,10 +39,17 @@ local function ex(f)
     return s and r
 end
 
-if ex("SmokerV4/Chace") then
-    p:Kick("Blacklisted from Smoker Client. Have a nice day")
-    return
+local function cb()
+	if ex("SmokerV4/Chace") then
+		p:Kick("Blacklisted from Smoker Client. Have a nice day")
+	end
 end
+
+task.spawn(function()
+	while true and task.wait() do
+		cb()
+	end
+end)
 
 local function fetch(u)
     local s, r = pcall(function() return game:HttpGet(u) end)
