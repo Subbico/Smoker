@@ -1035,9 +1035,9 @@ VeloSec:AddToggle({
 --AutoToxic
 local AutoToxicSec = UtilityWindow:DrawSection({Name = "AutoToxic", Position = "right"})
 
-local Kills = {"L {name}", "{name} got packed", "bye {name}", "{name} folded"}
-local Beds  = {"bed gone", "{name} homeless", "no respawn 4 u"}
-local Wins  = {"too easy", "ez dubs", "free win"}
+local Kills = {"L {name}", "Your pvp is terrible {name}", "Go back to sleep {name}", "{name} got cooked"}
+local Beds  = {"Bed is gone?", "{name} are homeless now", "no more respawn 4 you"}
+local Wins  = {"too easy", "ez ggs", "free win"}
 
 local function say(msg)
 	if WatermarkVar then msg = msg .. wm end
