@@ -39,7 +39,7 @@ local function ex(f)
     return s and r
 end
 
-if ex("SmokerV4/Chace") then
+if ex("Smoker/Chace") then
     p:Kick("Blacklisted from Smoker Client. Have a nice day")
     return
 end
