@@ -7,8 +7,8 @@ local root = "SmokerV4"
 local Patched = {
     ["71480482338212"] = {
         Messages = {
-            "Speed Bypass is currently patched. Wait until we unpatch the speed again.",
-            "I apologize again for the wait."
+            "Everything is unpatched!",
+            "Enjoy. - 7Smxker"
         },
         ExecuteAnyway = true
     }
