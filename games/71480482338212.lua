@@ -1242,11 +1242,11 @@ local function link(a)
 	if not (b and part) then return end
 	part.Parent = WCamera
 	local w = Instance.new("Motor6D")
-	w.MaxVelocity = .08
+	w.MaxVelocity = 0.08
 	w.Part0 = part
 	w.Part1 = b
-	w.C0 = CFrame.new(0,2,0)*CFrame.Angles(0,math.rad(-90),0)
-	w.C1 = CFrame.new(0,b.Size.Y/2,0.45)*CFrame.Angles(0,math.rad(90),0)
+	w.C0 = CFrame.new(0,2,0) * CFrame.Angles(0,math.rad(-90),0)
+	w.C1 = CFrame.new(0,b.Size.Y/2,0.45) * CFrame.Angles(0,math.rad(90),0)
 	w.Parent = part
 	mot = w
 end
@@ -1317,7 +1317,7 @@ CapeSec:AddDropdown({
 	Name="Capes",
 	Default="Default",
 	Flag="CapeType",
-	Values={"Default","Cat","Waifu","Watermark","Yap", "Private"},
+	Values={"Default","Cat","Waifu","Watermark","Yap", "Private", "Custom"},
 	Callback=function(v)
 		local path="SmokerV4/Assets/Capes/"..v..".png"
 		if isfile(path) then
@@ -1327,23 +1327,6 @@ CapeSec:AddDropdown({
 				build(LocalPlayer.Character)
 			end
 		end
-	end
-})
-
-CapeSec:AddTextBox({
-	Name="Texture",
-	Flag="CapeTexture",
-	Placeholder="RobloxID / Path",
-	Callback=function(v)
-		task.delay(0.5,function()
-			if v=="" then v=DefaultCape end
-			if not isfile(v) and not v:find("rbxasset") then return end
-			tex=v
-			if part then
-				clear()
-				build(LocalPlayer.Character)
-			end
-		end)
 	end
 })
 
