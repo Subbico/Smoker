@@ -1149,7 +1149,7 @@ local start = function()
 			if not h then return end
 			local d = h.MoveDirection
 			local v = c.PrimaryPart.AssemblyLinearVelocity
-			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*42.5, v.Y, d.Z*42.5)
+			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*40, v.Y, d.Z*40)
 		end))
 	elseif method=="Bounce" then
 		bounce = true
@@ -1157,11 +1157,11 @@ local start = function()
 			while bounce do
 				local h = hum()
 				if not h then break end
-				h.WalkSpeed = 40 task.wait(0.3)
+				h.WalkSpeed = 40 task.wait(0.5)
 				if not bounce then break end
-				h.WalkSpeed = 16 task.wait(0.5)
+				h.WalkSpeed = 16 task.wait(0.3)
 				if not bounce then break end
-				h.WalkSpeed = 70 task.wait(0.1)
+				h.WalkSpeed = 60 task.wait(0.1)
 			end
 		end)
 	end
