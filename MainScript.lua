@@ -1,111 +1,70 @@
-local p = game:GetService("Players").LocalPlayer
-local hs = game:GetService("HttpService")
-local base = "https://raw.githubusercontent.com/7Smoker/Smoker/main/"
-local api = "https://api.github.com/repos/7Smoker/Smoker/contents/"
-local root = "SmokerV4"
+local P,S,G=game:GetService("Players"),game:GetService("StarterGui"),game:GetService("HttpService")
+local pl=P.LocalPlayer
+local R="SmokerV4" D=R.."/Data" VF=D.."/Version.json"
+local RV="https://raw.githubusercontent.com/7Smoker/Smoker/main/Data/Version.json"
+local B="https://raw.githubusercontent.com/7Smoker/Smoker/main/"
+local A="https://api.github.com/repos/7Smoker/Smoker/contents/"
 
-local Patched = {
-    ["71480482338212"] = {
-        Messages = {
-            "Everything is unpatched!",
-            "Enjoy. - 7Smxker"
-        },
-        ExecuteAnyway = true
-    }
-}
+local function n(m) S:SetCore("SendNotification", {Title = "⚠Smoker Client⚠",Text = m,Duration = 15,Button1 = "OK"}) end
+local function f(p) if not isfolder(p) then makefolder(p) end end
 
-local function notify(msg)
-    local StarterGui = game:GetService("StarterGui")
-    StarterGui:SetCore("SendNotification", {
-        Title = "Smoker Client";
-        Text = msg;
-        Duration = 15,
-    })
-end
+f(R) f(D) for _,v in ipairs({"Games","Assets","Data","UILibrary"}) do f(R.."/"..v) end
 
-local currentGame = Patched[tostring(game.PlaceId)]
-if currentGame then
-    for _, msg in ipairs(currentGame.Messages) do
-        notify(msg)
-        wait(1)
+local function g(u) local s,r=pcall(game.HttpGet,game,u) return s and r and not r:find("404") and r end
+local function rV() if isfile(VF) then return G:JSONDecode(readfile(VF)) end writefile(VF,"{}") return {} end
+local function sV(d) writefile(VF,G:JSONEncode(d)) end
+
+local ln={}
+local function cV()
+    local id=tostring(game.PlaceId)
+    local ld=rV()
+    local rd=g(RV) and G:JSONDecode(g(RV))
+    if not rd or not rd[id] then ld[id]=nil sV(ld) return true,false end
+    local i=rd[id] ld[id]=i sV(ld)
+    if i.Bannable then 
+        if ln[id]~="b" then 
+            n("⚠ SmokerV4 is patched! RISK BANNABLE for this game. Please wait until our staff team fixes the code.") 
+            ln[id]="b" 
+        end 
+        return false,true 
     end
-    if not currentGame.ExecuteAnyway then
-        return
+
+    if tonumber(game.PlaceVersion or 0)>tonumber(i.Version) then
+        if ln[id]~="o" then 
+            n("SmokerV4 may be outdated! Some features could break — use at your own risk or wait until the staff team fully unpatches.") 
+            n("Current Version: "..tostring(game.PlaceVersion).." | Outdated Version: "..tostring(i.Version))
+            ln[id]="o" 
+        end 
+    else 
+        ln[id]=i.Version 
     end
+
+    return true,false
 end
 
-local function ex(f)
-    local s, r = pcall(function() return isfolder(f) end)
-    return s and r
-end
+local a,b=cV() if b then return end
+task.spawn(function() while true do task.wait(1) cV() end end)
 
-local function cb()
-	if ex("SmokerV4/Chace") then
-		p:Kick("Blacklisted from Smoker Client. Have a nice day")
-	end
-end
+local function blk() if isfolder(R.."/Chace") then n("Blacklisted") pl:Kick("Blacklisted") end end
+blk() task.spawn(function() while true do task.wait(20) blk() end end)
 
-task.spawn(function()
-	while true and task.wait() do
-		cb()
-	end
-end)
-
-local function fetch(u)
-    local s, r = pcall(function() return game:HttpGet(u) end)
-    return s and r and not r:find("404") and r
-end
-
-local function run(u)
-    local r = fetch(u)
-    if r then pcall(loadstring(r)) return true end
-end
-
-if not run(base .. "games/" .. game.PlaceId .. ".lua") then
-    run(base .. "games/Universal.lua")
-end
-
-run(base .. "UILibrary/Whitelist.lua")
-
-local function mk(p)
-    if not isfolder(p) then makefolder(p) end
-end
-
-for _, f in ipairs({"Games", "Assets", "Data", "UILibrary"}) do
-    mk(root .. "/" .. f)
-end
-
-local function grab(path, localPath)
-    local r = fetch(api .. path)
-    if not r then return end
-    for _, v in pairs(hs:JSONDecode(r)) do
-        local lp = localPath .. "/" .. v.name
-        if v.type == "file" then
-            if not isfile(lp) then
-                local d = fetch(v.download_url)
-                if d then
-                    local parts = string.split(lp, "/")
-                    table.remove(parts)
-                    local dir = table.concat(parts, "/")
-                    if not isfolder(dir) then makefolder(dir) end
-                    writefile(lp, d)
-                end
+local function run(u) local c=g(u) if c then pcall(loadstring(c)) return true end end
+local function grab(p,lp)
+    local d=g(A..p) if not d then return end
+    for _,v in ipairs(G:JSONDecode(d)) do
+        local pa=lp.."/"..v.name
+        if v.type=="file" then
+            if not isfile(pa) then
+                local c=g(v.download_url)
+                if c then local t=string.split(pa,"/") table.remove(t) local dir=table.concat(t,"/") if not isfolder(dir) then makefolder(dir) end writefile(pa,c) end
             end
-        else
-            mk(lp)
-            grab(path .. "/" .. v.name, lp)
-        end
+        else f(pa) grab(p.."/"..v.name,pa) end
     end
 end
 
-for _, f in ipairs({"Games", "Assets", "Data", "UILibrary"}) do
-    grab(f, root .. "/" .. f)
-end
+for _,v in ipairs({"Games","Assets","Data","UILibrary"}) do grab(v,R.."/"..v) end
+if not run(B.."games/"..game.PlaceId..".lua") then run(B.."games/Universal.lua") end
+run(B.."UILibrary/Whitelist.lua")
 
-local function dl(u, path)
-    local r = fetch(u)
-    if r and not isfile(path) then writefile(path, r) end
-end
-
-dl(base .. "loader.lua", root .. "/loader.lua")
-dl(base .. "loadstring", root .. "/loadstring")
+local function dl(u,p) local c=g(u) if c and not isfile(p) then writefile(p,c) end end
+dl(B.."loader.lua",R.."/loader.lua") dl(B.."loadstring",R.."/loadstring")
