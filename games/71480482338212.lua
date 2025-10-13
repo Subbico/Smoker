@@ -1128,63 +1128,69 @@ AutoToxicSec:AddToggle({
 })
 
 --Speed
-local SpeedSec = MovementWindow:DrawSection({Name = "Speed", Position = "right"})
-local SpeedConns, JumpConns = {}, {}
-local AlwaysJumpVar = false
-local lastJump = 0
-local SpeedValue = 50
+local SpeedSec = MovementWindow:DrawSection({Name="Speed", Position="right"})
+local conns, method, bounce = {}, "Classic", false
+
+local sbounce = function() bounce = false end
+
+local stop = function()
+	sbounce()
+	for _, c in ipairs(conns) do if typeof(c)=="RBXScriptConnection" then c:Disconnect() end end
+	table.clear(conns)
+	local h = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+	if h then h.WalkSpeed = 16 end
+end
+
+local start = function()
+	local hum = function() local c=LocalPlayer.Character return c and c:FindFirstChildOfClass("Humanoid") end
+	if method=="Classic" then
+		local h = hum()
+		if h then h.WalkSpeed = 35 end
+	elseif method=="Velocity" then
+		table.insert(conns, RunService.Heartbeat:Connect(function()
+			local c = LocalPlayer.Character
+			if not c or not c.PrimaryPart then return end
+			local h = hum()
+			if not h then return end
+			local d = h.MoveDirection
+			local v = c.PrimaryPart.AssemblyLinearVelocity
+			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*42.5, v.Y, d.Z*42.5)
+		end))
+	elseif method=="Bounce" then
+		bounce = true
+		task.spawn(function()
+			while bounce do
+				local h = hum()
+				if not h then break end
+				h.WalkSpeed = 40 task.wait(0.3)
+				if not bounce then break end
+				h.WalkSpeed = 16 task.wait(0.5)
+				if not bounce then break end
+				h.WalkSpeed = 70 task.wait(0.1)
+			end
+		end)
+	end
+end
 
 SpeedSec:AddToggle({
-    Name = "Speed",
-    Flag = "Speed",
-    Callback = function(v)
-        SpeedVar = v
-        if v then
-            local conn = game:GetService("RunService").Heartbeat:Connect(function()
-                local char = LocalPlayer.Character
-                if not char or not char.PrimaryPart then return end
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if not hum then return end
-
-                local dir = hum.MoveDirection
-                local vel = char.PrimaryPart.AssemblyLinearVelocity
-                char.PrimaryPart.AssemblyLinearVelocity = Vector3.new(dir.X * SpeedValue, vel.Y, dir.Z * SpeedValue)
-
-                if AlwaysJumpVar then
-                    if tick() - lastJump > 0.58 and hum.FloorMaterial ~= Enum.Material.Air then
-                        hum:ChangeState(Enum.HumanoidStateType.Jumping)
-                        lastJump = tick()
-                    end
-                end
-            end)
-            table.insert(SpeedConns, conn)
-        else
-            for _, c in ipairs(SpeedConns) do c:Disconnect() end
-            table.clear(SpeedConns)
-        end
-    end
+	Name="Speed",
+	Flag="Speed",
+	Callback=function(v)
+		SpeedVar = v
+		if v then start() else stop() end
+	end
 })
 
-SpeedSec:AddSlider({
-    Name = "Speed",
-    Min = 16,
-    Max = 200,
-    Default = 50,
-    Callback = function(v)
-        SpeedValue = v
-    end
-})
-
-SpeedSec:AddToggle({
-    Name = "AlwaysJump",
-    Flag = "AlwaysJump",
-    Callback = function(v)
-        AlwaysJumpVar = v
-        if not v then
-            for _, c in ipairs(JumpConns) do c:Disconnect() end
-            table.clear(JumpConns)
-        end
-    end
+SpeedSec:AddDropdown({
+	Name="Speed Method",
+	Default="Classic",
+	Flag="Speed_Method",
+	Values={"Classic","Velocity","Bounce"},
+	Callback=function(v)
+		if method=="Bounce" then sbounce() end
+		method = v
+		if SpeedVar then stop() start() end
+	end
 })
 
 --FOV
