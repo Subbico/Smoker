@@ -1232,7 +1232,7 @@ FOVSec:AddSlider({
 
 --Cape
 local WCamera = workspace.CurrentCamera
-local CapeSec = UtilityWindow:DrawSection({Name="Cape", Position="right"})
+local CapeSec = VisualWindow:DrawSection({Name="Cape", Position="right"})
 local DefaultCape = "SmokerV4/Assets/Capes/Default.png"
 local tex, part, mot = DefaultCape, nil, nil
 
