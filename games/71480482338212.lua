@@ -1144,8 +1144,14 @@ end
 local start = function()
 	local hum = function() local c=LocalPlayer.Character return c and c:FindFirstChildOfClass("Humanoid") end
 	if method=="Classic" then
-		local h = hum()
-		if h then h.WalkSpeed = 35 end
+		local keepRunning = true
+		table.insert(conns, RunService.Heartbeat:Connect(function()
+			if not SpeedVar or method ~= "Classic" then return end
+			local h = hum()
+			if h and h.WalkSpeed ~= 35 then
+				h.WalkSpeed = 35
+			end
+		end))
 	elseif method=="Velocity" then
 		table.insert(conns, RunService.Heartbeat:Connect(function()
 			local c = LocalPlayer.Character
