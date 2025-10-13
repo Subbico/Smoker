@@ -935,21 +935,19 @@ InputService.InputBegan:Connect(function(input, processed)
 end)
 
 --Nuker
-local NukerSec = UtilityWindow:DrawSection({Name = "Nuker", Position = "left"})
-
+local NukerSec = UtilityWindow:DrawSection({Name="Nuker", Position="left"})
 local MineBlock = rs.Remotes.ItemsRemotes.MineBlock
 
 local function getBed(r)
     local c = workspace:FindFirstChild("BedsContainer")
-    if not c then return nil end
-
+    if not c then return end
     local nearest, dist
-    for _, v in ipairs(c:GetChildren()) do
-        local h = v:FindFirstChild("BedHitbox")
-        if h and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-            local d = (LocalPlayer.Character.PrimaryPart.Position - h.Position).Magnitude
+    for _, b in ipairs(c:GetChildren()) do
+        local hb = b:FindFirstChild("BedHitbox")
+        if hb and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
+            local d = (LocalPlayer.Character.PrimaryPart.Position - hb.Position).Magnitude
             if d <= r and (not dist or d < dist) then
-                nearest, dist = h, d
+                nearest, dist = hb, d
             end
         end
     end
@@ -957,43 +955,34 @@ local function getBed(r)
 end
 
 local function getPick()
-    if not LocalPlayer then return nil end
-    for _, v in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if v.Name:lower():find("pickaxe") then
-            return v
-        end
-    end
-    if LocalPlayer.Character then
-        for _, v in ipairs(LocalPlayer.Character:GetChildren()) do
-            if v.Name:lower():find("pickaxe") then
-                return v
-            end
-        end
-    end
-    return nil
+    for _, i in ipairs(LocalPlayer.Backpack:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end
+    if LocalPlayer.Character then for _, i in ipairs(LocalPlayer.Character:GetChildren()) do if i.Name:lower():find("pickaxe") then return i end end end
+end
+
+local function mine(pick, hb)
+    if not pick or not hb then return end
+    local model = hb.Parent
+    local pos = hb.Position
+    local org = pos + Vector3.new(0,3,0)
+    local dir = (pos-org).Unit
+    MineBlock:FireServer(pick.Name, model, vector.create(pos.X,pos.Y,pos.Z), vector.create(org.X,org.Y,org.Z), vector.create(dir.X,dir.Y,dir.Z))
 end
 
 NukerSec:AddToggle({
-    Name = "Nuker",
-    Flag = "Nuker",
-    Default = false,
-    Callback = function(state)
+    Name="Nuker",
+    Flag="Nuker",
+    Default=false,
+    Callback=function(state)
         NukerVar = state
-        if state then
-            task.spawn(function()
-                while NukerVar do
-                    task.wait(0.2)
-                    local bed = getBed(30)
-                    local pick = getPick()
-                    if bed and pick then
-                        local pos = bed.Position
-                        local origin = pos + Vector3.new(0, 3, 0)
-                        local dir = (pos - origin).Unit
-                        MineBlock:FireServer(pick.Name, bed.Parent, pos, origin, dir)
-                    end
-                end
-            end)
-        end
+        if state then task.spawn(function()
+            while NukerVar do
+                task.wait(0.1)
+                if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then continue end
+                local hb = getBed(30)
+                local pick = getPick()
+                if hb and pick then mine(pick,hb) end
+            end
+        end) end
     end
 })
 
