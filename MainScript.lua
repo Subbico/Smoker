@@ -7,8 +7,8 @@ local root = "SmokerV4"
 local Patched = {
     ["71480482338212"] = {
         Messages = {
-            "Smxker Client got unpatched. Report any bug in the github repository.",
-			"Thanks for your support! Enjoy. - 7Smxker"
+            "Speed Bypass is currently patched. Wait until we unpatch the speed again.",
+            "I apologize again for the wait."
         },
         ExecuteAnyway = true
     }
