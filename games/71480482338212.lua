@@ -898,9 +898,7 @@ local function performLongJump()
 	cooldown = true
 
 	local originalSpeed = humanoid.WalkSpeed
-	local originalJumpPower = humanoid.JumpPower
 	humanoid.WalkSpeed = 0
-	humanoid.JumpPower = 0
 
 	local destination = root.Position + (root.CFrame.LookVector * 50)
 	local tween = TweenService:Create(root, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = CFrame.new(destination) })
@@ -908,7 +906,6 @@ local function performLongJump()
 
 	task.delay(1.5, function()
 		humanoid.WalkSpeed = originalSpeed
-		humanoid.JumpPower = originalJumpPower
 	end)
 
 	task.delay(cooldownTime, function()
@@ -1137,8 +1134,8 @@ local start = function()
 		table.insert(conns, RunService.Heartbeat:Connect(function()
 			if not SpeedVar or method ~= "Classic" then return end
 			local h = hum()
-			if h and h.WalkSpeed ~= 35 then
-				h.WalkSpeed = 35
+			if h and h.WalkSpeed ~= 34 then
+				h.WalkSpeed = 34
 			end
 		end))
 	elseif method=="Velocity" then
@@ -1149,7 +1146,7 @@ local start = function()
 			if not h then return end
 			local d = h.MoveDirection
 			local v = c.PrimaryPart.AssemblyLinearVelocity
-			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*40, v.Y, d.Z*40)
+			c.PrimaryPart.AssemblyLinearVelocity = Vector3.new(d.X*39, v.Y, d.Z*39)
 		end))
 	elseif method=="Bounce" then
 		bounce = true
@@ -1157,11 +1154,11 @@ local start = function()
 			while bounce do
 				local h = hum()
 				if not h then break end
-				h.WalkSpeed = 40 task.wait(0.5)
+				h.WalkSpeed = 34 task.wait(0.5)
 				if not bounce then break end
 				h.WalkSpeed = 16 task.wait(0.3)
 				if not bounce then break end
-				h.WalkSpeed = 60 task.wait(0.1)
+				h.WalkSpeed = 35 task.wait(0.1)
 			end
 		end)
 	end
