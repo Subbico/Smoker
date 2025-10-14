@@ -36,10 +36,11 @@ local TweenService = game:GetService("TweenService")
 --Windows
 SmokerV4:DrawCategory({Name = "Smoker"});
 
-local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", EnableScrolling = true});
-local UtilityWindow = SmokerV4:DrawTab({Name = "Utility", Icon = "lucide-hammer", EnableScrolling = true});
-local MovementWindow = SmokerV4:DrawTab({Name = "Movement", Icon = "lucide-layout-dashboard", EnableScrolling = true});
-local VisualWindow = SmokerV4:DrawTab({Name = "Visual", Icon = "lucide-eye", EnableScrolling = true});
+local CombatWindow = SmokerV4:DrawTab({Name = "Combat", Icon = "lucide-swords", Type = "Single", EnableScrolling = true,});
+local UtilityWindow = SmokerV4:DrawTab({Name = "Utility", Icon = "lucide-hammer", Type = "Single", EnableScrolling = true,});
+local MovementWindow = SmokerV4:DrawTab({Name = "Movement", Icon = "lucide-layout-dashboard", Type = "Single", EnableScrolling = true,});
+local VisualWindow = SmokerV4:DrawTab({Name = "Visual", Icon = "lucide-eye", Type = "Single", EnableScrolling = true,});
+local FunnyWindow = SmokerV4:DrawTab({Name = "Funny", Icon = "lucide-laugh", Type = "Single", EnableScrolling = true,});
 
 --Vars
 local NameTagsVar = false
@@ -49,7 +50,6 @@ local HighlightVar = false
 local ScaffoldVar = false
 local ProjectAimVar = false
 local ProjectAimRange = 20
-local RangeKA = 20
 local NukerVar = false
 local TeamCheckVar = false
 local TeamColorVar = false
@@ -60,6 +60,8 @@ local AutoToxicVar = false
 local DisplayNameVar = false
 local CapeVar = false
 local SpeedVar = false
+local BalloonVar = false
+local DmgColorVar = false
 
 --Colors/Texts/Conns
 local KAHighlight = Color3.fromRGB(255, 0, 0)
@@ -70,7 +72,6 @@ local HUDc=Color3.fromRGB(25,25,25)
 local CapeColor = Color3.fromRGB(0, 0, 0)
 
 --Hud
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 
 local hudGui, listFrame, contentFrame, hudconnect
@@ -91,7 +92,9 @@ local ForHudVars = {
     ["FOV"] = function() return FOVVar end,
     ["AutoToxic"] = function() return AutoToxicVar end,
 	["Cape"] = function() return CapeVar end,
-	["Speed"] = function() return SpeedVar end
+	["Speed"] = function() return SpeedVar end,
+	["Balloons?"] = function() return BalloonVar end,
+	["DamageIndicator"] = function() return DmgColorVar end
 }
 
 local function DestroyHUD()
@@ -691,7 +694,7 @@ KAsec:AddToggle({Name="Move HUD",Flag="KAmove",Default=false,Callback=function(s
 KAsec:AddColorPicker({Name="HUD Color",Default=HUDc,Flag="KAhudC",Callback=function(c) HUDc=c if HUD and HUD.F then HUD.F.BackgroundColor3=c end end})
 
 --Scaffold
-local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Position = "left"})
+local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Position = "left", Risky = true})
 
 local PlaceRemote = rs:WaitForChild("Remotes"):WaitForChild("ItemsRemotes"):WaitForChild("PlaceBlock")
 local ScaffoldTask
@@ -755,6 +758,7 @@ local function StartScaffold()
 end
 
 ScaffoldSec:AddToggle({
+	Risky = true,
     Name = "Scaffold",
     Flag = "Scaffold",
     Default = false,
@@ -769,7 +773,7 @@ ScaffoldSec:AddToggle({
 --ProjectAim
 local ProjectAimSec = CombatWindow:DrawSection({Name = "ProjectAim", Position = "right"})
 
-ProjectAimSec:AddToggle({
+local ProjectAimToggle = ProjectAimSec:AddToggle({
     Name = "ProjectAim [Beta]",
     Flag = "ProjectAim",
     Default = false,
@@ -859,8 +863,10 @@ ProjectAimSec:AddSlider({
     end
 })
 
+ProjectAimToggle.Link:AddHelper({Text = "THIS FEATURE IS IN BETA!"})
+
 --LongJump
-local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump", Position = "right" })
+local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump", Position = "right"})
 
 local keybindKey = Enum.KeyCode.Q
 local cooldown = false
@@ -1129,7 +1135,7 @@ AutoToxicSec:AddToggle({
 })
 
 --Speed
-local SpeedSec = MovementWindow:DrawSection({Name="Speed", Position="right"})
+local SpeedSec = MovementWindow:DrawSection({Name="Speed", Position="right", Risky = true})
 local conns, method, bounce = {}, "Classic", false
 
 local sbounce = function() bounce = false end
@@ -1180,6 +1186,7 @@ local start = function()
 end
 
 SpeedSec:AddToggle({
+	Risky = true,
 	Name="Speed",
 	Flag="Speed",
 	Callback=function(v)
@@ -1339,6 +1346,77 @@ CapeSec:AddColorPicker({
 		CapeColor=v
 		if part then part.Color=v end
 	end
+})
+
+--Happy Birthday / Balloon
+local BalloonSec = FunnyWindow:DrawSection({Name = "Balloon", Position = "left"})
+local BalloonVal = 1
+
+local function updBalloons()
+    if BalloonVar then
+        LocalPlayer.BalloonsAmount.Value = BalloonVal
+	else
+        LocalPlayer.BalloonsAmount.Value = 0
+    end
+end
+
+local BalloonToggle = BalloonSec:AddToggle({
+    Name = "Balloon",
+    Flag = "Balloon",
+    Default = false,
+    Callback = function(state)
+        BalloonVar = state
+        updBalloons()
+    end
+})
+
+BalloonSec:AddSlider({
+    Name = "Balloons",
+    Flag = "Balloons",
+    Default = 1,
+    Min = 1,
+    Max = 10,
+    Callback = function(value)
+        BalloonVal = value
+        updBalloons()
+    end
+})
+
+BalloonToggle.Link:AddHelper({Text = "Pop."})
+BalloonSec:AddParagraph({Title = "Balloon!", Content = "Keep in mind this is useless."})
+
+--Damage Indicator
+local DamageSec = VisualWindow:DrawSection({Name = "Damage Indicator", Position = "left"})
+local DDColor = Color3.fromRGB(255, 255, 255)
+
+local function updColor()
+    local label = LocalPlayer.PlayerScripts:WaitForChild("DamageIndicatorScript")
+        :WaitForChild("DamageIndicatorGui"):WaitForChild("TextLabel")
+    if DmgColorVar then
+        label.TextColor3 = DDColor
+    else
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end
+end
+
+local ColorToggle = DamageSec:AddToggle({
+    Name = "Enable Custom Color",
+    Flag = "DamageColorToggle",
+    Default = false,
+    Callback = function(state)
+        DmgColorVar = state
+        updColor()
+    end
+})
+
+DamageSec:AddColorPicker({
+    Name = "Text Color",
+    Default = Color3.fromRGB(255, 255, 255),
+    Flag = "DamageCP",
+    Callback = function(color)
+        DDColor = color
+        updColor()
+    end
 })
 
 -- Settings
