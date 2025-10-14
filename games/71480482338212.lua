@@ -770,7 +770,7 @@ ScaffoldSec:AddToggle({
 local ProjectAimSec = CombatWindow:DrawSection({Name = "ProjectAim", Position = "right"})
 
 ProjectAimSec:AddToggle({
-    Name = "ProjectAim",
+    Name = "ProjectAim [Beta]",
     Flag = "ProjectAim",
     Default = false,
     Callback = function(state)
@@ -794,15 +794,26 @@ ProjectAimSec:AddToggle({
         end
 
         local function predictPosition(target, speed)
-            local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if not root or not target.Character or not target.Character:FindFirstChild("HumanoidRootPart") then return end
-            local tRoot = target.Character.HumanoidRootPart
+            if not target.Character then return end
+            local tRoot = target.Character:FindFirstChild("HumanoidRootPart")
+            if not tRoot then return end
             local vel = tRoot.Velocity
             local pos = tRoot.Position
-            local dist = (pos - root.Position).Magnitude
+            local dist = (pos - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
             local travelTime = dist / speed
-            local predicted = pos + vel * travelTime + Vector3.new(0, 0.5 * gravity * (travelTime ^ 2) / speed, 0)
+            local predicted = pos + vel * travelTime + Vector3.new(0, 0.5 * gravity * (travelTime^2) / speed, 0)
             return predicted
+        end
+
+        local function getHitboxCenter(target)
+            local char = target.Character
+            if char:FindFirstChild("HitBox") then
+                return char.HitBox.Position
+            elseif char:FindFirstChild("HumanoidRootPart") then
+                return char.HumanoidRootPart.Position
+            else
+                return nil
+            end
         end
 
         task.spawn(function()
@@ -811,7 +822,7 @@ ProjectAimSec:AddToggle({
                 if char and char:FindFirstChild("HumanoidRootPart") then
                     local root = char.HumanoidRootPart
                     local target = getClosest()
-                    if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                    if target then
                         local weapon, projId, speed
                         if char:FindFirstChild("Bow") or LocalPlayer.Backpack:FindFirstChild("Bow") then
                             weapon, projId, speed = "Bow", 110, 500
@@ -819,10 +830,14 @@ ProjectAimSec:AddToggle({
                             weapon, projId, speed = "Crossbow", 115, 700
                         end
                         if weapon then
-                            local predicted = predictPosition(target, speed)
-                            if predicted then
-                                local dir = (predicted - root.Position).Unit
-                                remote:FireServer(projId, weapon, root.Position, speed, dir, predicted)
+                            local hitboxCenter = getHitboxCenter(target)
+                            if hitboxCenter then
+                                local predicted = predictPosition(target, speed)
+                                if predicted then
+                                    local startPos = hitboxCenter
+                                    local dir = (predicted - startPos).Unit
+                                    remote:FireServer(projId, weapon, startPos, speed, dir, predicted)
+                                end
                             end
                         end
                     end
