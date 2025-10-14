@@ -851,9 +851,9 @@ ProjectAimSec:AddToggle({
 ProjectAimSec:AddSlider({
     Name = "ProjectAim Range",
     Flag = "ProjectAimRange",
-    Default = 50,
-    Min = 10,
-    Max = 200,
+    Default = 35,
+    Min = 18,
+    Max = 50,
     Callback = function(value)
         ProjectAimRange = value
     end
