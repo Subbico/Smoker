@@ -793,7 +793,7 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
             local root = LocalPlayer.Character.HumanoidRootPart
             local nearest, dist = nil, math.huge
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then then
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
                     local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
                     if d < dist and d <= (ProjectAimRange or 20) then
                         dist, nearest = d, p
