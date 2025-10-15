@@ -521,21 +521,27 @@ local function sword()
 end
 
 local function nearest()
-	if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-	local root = LocalPlayer.Character.HumanoidRootPart
-	local t, dist = nil, math.huge
-	for _, p in ipairs(Players:GetPlayers()) do
-		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
-			local lt, tt = LocalPlayer.Team, p.Team
-			if lt == nil or lt.Name == "Spectators" or lt ~= tt then
-				local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
-				if d < dist and d <= range then
-					dist, t = d, p
-				end
-			end
-		end
-	end
-	return t
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    local root = LocalPlayer.Character.HumanoidRootPart
+    local t, dist = nil, math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer 
+           and p.Character 
+           and p.Character:FindFirstChild("HumanoidRootPart") 
+           and p.Character:FindFirstChild("Humanoid") 
+           and p.Humanoid.Health > 0 
+           and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
+           
+            local lt, tt = LocalPlayer.Team, p.Team
+            if lt == nil or lt.Name == "Spectators" or lt ~= tt then
+                local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
+                if d < dist and d <= range then
+                    dist, t = d, p
+                end
+            end
+        end
+    end
+    return t
 end
 
 local function hl(t)
@@ -787,7 +793,7 @@ local ProjectAimToggle = ProjectAimSec:AddToggle({
             local root = LocalPlayer.Character.HumanoidRootPart
             local nearest, dist = nil, math.huge
             for _, p in ipairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 then
+                if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health > 0 and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then then
                     local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
                     if d < dist and d <= (ProjectAimRange or 20) then
                         dist, nearest = d, p
@@ -1298,6 +1304,17 @@ local function build(a)
 			task.wait()
 		end
 	end)
+end
+
+local function pvcape(player, texture, color)
+    if not player.Character then return end
+    if _G.isWhitelisted and _G.isWhitelisted(player) then return end
+
+    local oldPart, oldMot, oldTex = part, mot, tex
+    part, mot, tex = nil, nil, texture or tex
+    CapeColor = color or CapeColor
+    build(player.Character)
+    part, mot, tex = oldPart, oldMot, oldTex
 end
 
 local function clear()
