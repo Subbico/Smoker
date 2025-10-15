@@ -6,7 +6,7 @@ local ConfigManager = Library:ConfigManager({Directory = "SmokerV4/games", Confi
 Library:Loader(getcustomasset("SmokerV4/Assets/newlogo.png"), 2.5):yield()
 
 --Library
-local SmokerV4 = Library.new({Name="Smoker | Bedwarz",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
+local SmokerV4 = Library.new({Name="Bedwarz",Keybind="RightShift",Logo=getcustomasset("SmokerV4/Assets/icon.png"),Scale=Library.Scale.Window,TextSize=15})
 
 --Notification
 Notify.new({Title = "SmokerV4",Content = "Thank you for use this script!", Duration = 10, Icon = getcustomasset("SmokerV4/Assets/icon.png")});
