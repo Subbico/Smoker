@@ -524,14 +524,15 @@ local function nearest()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
     local root = LocalPlayer.Character.HumanoidRootPart
     local t, dist = nil, math.huge
+
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer 
            and p.Character 
            and p.Character:FindFirstChild("HumanoidRootPart") 
            and p.Character:FindFirstChild("Humanoid") 
-           and p.Humanoid.Health > 0 
+           and p.Character.Humanoid.Health > 0 
            and (not _G.isWhitelisted or not _G.isWhitelisted(p)) then
-           
+
             local lt, tt = LocalPlayer.Team, p.Team
             if lt == nil or lt.Name == "Spectators" or lt ~= tt then
                 local d = (p.Character.HumanoidRootPart.Position - root.Position).Magnitude
