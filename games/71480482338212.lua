@@ -778,6 +778,8 @@ ScaffoldSec:AddToggle({
 })
 
 --ProjectAim
+-- Need to fix
+--[[
 local ProjectAimSec = CombatWindow:DrawSection({Name = "ProjectAim", Position = "right"})
 
 local ProjectAimToggle = ProjectAimSec:AddToggle({
@@ -871,6 +873,8 @@ ProjectAimSec:AddSlider({
 })
 
 ProjectAimToggle.Link:AddHelper({Text = "THIS FEATURE IS IN BETA!"})
+
+]]
 
 --LongJump
 local LongJumpSection = MovementWindow:DrawSection({ Name = "LongJump", Position = "right"})
