@@ -14,8 +14,8 @@
 <p align="center">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-1E90FF?style=for-the-badge&logo=github&logoColor=white"/>
   <img alt="Status" src="https://img.shields.io/badge/status-BETA-FBBF24?style=for-the-badge&logo=vercel&logoColor=white"/>
-  <img alt="Stars" src="https://img.shields.io/github/stars/7Smoker/Smoker?style=for-the-badge&color=yellow&logo=github"/>
-  <img alt="Repo size" src="https://img.shields.io/github/repo-size/7Smoker/Smoker?style=for-the-badge&color=orange&logo=files"/>
+  <img alt="Stars" src="https://img.shields.io/github/stars/Subbico/Smoker?style=for-the-badge&color=yellow&logo=github"/>
+  <img alt="Repo size" src="https://img.shields.io/github/repo-size/Subbico/Smoker?style=for-the-badge&color=orange&logo=files"/>
 </p>
 
 ---
@@ -45,7 +45,7 @@ It brings automation, optimizations, and smarter utilities that help you play mo
 Copy and paste this code into your executor and run it:
 
 ```luau
-loadstring(game:HttpGet("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/MainScript.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Subbico/Smoker/refs/heads/main/MainScript.lua"))()
 ````
 
 ---
@@ -102,7 +102,7 @@ Contributions are always welcome:
 
 ## 👤 Credits
 
-* **Author:** [7Smoker](https://github.com/7Smoker)
+* **Author:** [Subbico](https://github.com/Subbico)
 * Huge thanks to all testers and community contributors
 
 ---

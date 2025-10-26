@@ -1,9 +1,9 @@
 local P,S,G=game:GetService("Players"),game:GetService("StarterGui"),game:GetService("HttpService")
 local pl=P.LocalPlayer
 local R="SmokerV4" D=R.."/Data" VF=D.."/Version.json"
-local RV="https://raw.githubusercontent.com/7Smoker/Smoker/main/Data/Version.json"
-local B="https://raw.githubusercontent.com/7Smoker/Smoker/main/"
-local A="https://api.github.com/repos/7Smoker/Smoker/contents/"
+local RV="https://raw.githubusercontent.com/Subbico/Smoker/main/Data/Version.json"
+local B="https://raw.githubusercontent.com/Subbico/Smoker/main/"
+local A="https://api.github.com/repos/Subbico/Smoker/contents/"
 
 local function n(m) S:SetCore("SendNotification", {Title = "⚠Smoker Client⚠",Text = m,Duration = 15,Button1 = "OK"}) end
 local function f(p) if not isfolder(p) then makefolder(p) end end

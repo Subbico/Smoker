@@ -156,7 +156,7 @@ local getcustomasset = getcustomasset or getsynasset
 
 local HttpService = game:GetService("HttpService")
 local rootFolder = "Smoker"
-local repoApi = "https://api.github.com/repos/7Smoker/Smoker/contents/"
+local repoApi = "https://api.github.com/repos/Subbico/Smoker/contents/"
 
 local function notify(message)
     library:Notification({Text = message, Duration = 4})
@@ -226,9 +226,9 @@ local function downloadFile(url, path, name)
     end
 end
 
-downloadFile("https://raw.githubusercontent.com/7Smoker/Smoker/refs/heads/main/loader.lua", rootFolder .. "/loader.lua", "loader.lua")
+downloadFile("https://raw.githubusercontent.com/Subbico/Smoker/refs/heads/main/loader.lua", rootFolder .. "/loader.lua", "loader.lua")
 downloadFile("https://raw.githubusercontent.com/Rain-Design/Libraries/main/Icon/Circle.png", rootFolder .. "/Circle.png", "Circle.png")
-downloadFile("https://raw.githubusercontent.com/7Smoker/Smoker/main/loadstring", rootFolder .. "/loadstring", "loadstring")
+downloadFile("https://raw.githubusercontent.com/Subbico/Smoker/main/loadstring", rootFolder .. "/loadstring", "loadstring")
 
 function library:Window(Info)
 Info.Text = Info.Text or "Smoker"
