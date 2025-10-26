@@ -45,7 +45,7 @@ local FunnyWindow = SmokerV4:DrawTab({Name = "Funny", Icon = "lucide-laugh", Typ
 --Vars
 local NameTagsVar = false
 local VibeVar = false
-local KAVar,HLon,HUDon,UseDN,MoveHUD=false,false,false,false,false
+local KAVar,HLon,HUDon,UseDN,MoveHUD,UseToolCheck,RequireMouseDown=false,false,false,false,false,false,false
 local HighlightVar = false
 local ScaffoldVar = false
 local ProjectAimVar = false
@@ -673,7 +673,7 @@ KAsec:AddToggle({
 				while KAVar do
 					local w = sword()
 					local t = nearest()
-					if w and t and t.Character then
+					if w and t and t.Character and (not UseToolCheck or store.hand.toolType == 'sword') and (not RequireMouseDown or inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)) then
 						r:FireServer(t.Character, w)
 						hl(t)
 						if HUDon then updHUD(t) end
@@ -699,6 +699,8 @@ KAsec:AddToggle({Name="Target HUD",Flag="KAhud",Default=false,Callback=function(
 KAsec:AddToggle({Name="Use DisplayName",Flag="KAdn",Default=false,Callback=function(s) UseDN=s end})
 KAsec:AddToggle({Name="Move HUD",Flag="KAmove",Default=false,Callback=function(s) MoveHUD=s end})
 KAsec:AddColorPicker({Name="HUD Color",Default=HUDc,Flag="KAhudC",Callback=function(c) HUDc=c if HUD and HUD.F then HUD.F.BackgroundColor3=c end end})
+KAsec:AddToggle({Name="Tool Check",Flag="KAToolCheck",Default=false,Callback=function(s) UseToolCheck=s end})
+KAsec:AddToggle({Name="Require Mouse Down",Flag="KAMouseDown",Default=false,Callback=function(s) RequireMouseDown=s end})
 
 --Scaffold
 local ScaffoldSec = UtilityWindow:DrawSection({Name = "Scaffold", Position = "left", Risky = true})
@@ -963,9 +965,66 @@ InputService.InputBegan:Connect(function(input, processed)
 	end
 end)
 
+--AutoClicker
+local AutoClickerSec = CombatWindow:DrawSection({Name="AutoClicker", Position="right"})
+
+local AutoClickerVar = false
+local CPS = {GetRandomValue = function() return 7 end}
+local BlockCPS = {GetRandomValue = function() return 12 end}
+local PlaceBlocks = true
+
+local function AutoClick()
+    if not AutoClickerVar then return end
+    repeat
+        if not bedwars.AppController:isLayerOpen(bedwars.UILayers.MAIN) then
+            local blockPlacer = bedwars.BlockPlacementController and bedwars.BlockPlacementController.blockPlacer
+            if store.hand.toolType == 'block' and blockPlacer and PlaceBlocks then
+                if (workspace:GetServerTimeNow() - bedwars.BlockCpsController.lastPlaceTimestamp) >= ((1 / 12) * 0.5) then
+                    local mouseinfo = blockPlacer.clientManager:getBlockSelector():getMouseInfo(0)
+                    if mouseinfo and mouseinfo.placementPosition == mouseinfo.placementPosition then
+                        task.spawn(blockPlacer.placeBlock, blockPlacer, mouseinfo.placementPosition)
+                    end
+                end
+            elseif store.hand.toolType == 'sword' then
+                bedwars.SwordController:swingSwordAtMouse(0.25 + math.random() / 8)
+            end
+        end
+        task.wait(1 / (store.hand.toolType == 'block' and BlockCPS or CPS).GetRandomValue())
+    until not AutoClickerVar
+end
+
+AutoClickerSec:AddToggle({
+    Name="AutoClicker",
+    Flag="AutoClicker",
+    Default=false,
+    Callback=function(state)
+        AutoClickerVar = state
+        if state then
+            task.spawn(function()
+                while AutoClickerVar do
+                    if inputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                        AutoClick()
+                    end
+                    task.wait(0.016)
+                end
+            end)
+        end
+    end
+})
+
+AutoClickerSec:AddToggle({
+    Name="Place Blocks",
+    Flag="AutoClickerPlaceBlocks",
+    Default=true,
+    Callback=function(state)
+        PlaceBlocks = state
+    end
+})
+
 --Nuker
 local NukerSec = UtilityWindow:DrawSection({Name="Nuker", Position="left"})
 local MineBlock = rs.Remotes.ItemsRemotes.MineBlock
+local NukerLimitItem = false
 
 local function getBed(r)
     local c = workspace:FindFirstChild("BedsContainer")
@@ -1007,11 +1066,21 @@ NukerSec:AddToggle({
             while NukerVar do
                 task.wait(0.1)
                 if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then continue end
+                if NukerLimitItem and store.hand.toolType ~= 'pickaxe' then continue end
                 local hb = getBed(30)
                 local pick = getPick()
                 if hb and pick then mine(pick,hb) end
             end
         end) end
+    end
+})
+
+NukerSec:AddToggle({
+    Name="Limit to Pickaxe",
+    Flag="NukerLimitItem",
+    Default=false,
+    Callback=function(state)
+        NukerLimitItem = state
     end
 })
 
